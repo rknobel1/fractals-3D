@@ -1,0 +1,3 @@
+/Output/*.xml
+__pycache__/
+*.pyc
