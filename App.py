@@ -115,29 +115,44 @@ class GeneratorBuilderWindow(QMainWindow):
             )
 
     def enable_cube_placement(self):
-        self.pick_plane = pv.Plane(
-            center=(0, 0, self.current_layer),
-            direction=(0, 0, 1),
-            i_size=self.generator_size,
-            j_size=self.generator_size,
-            i_resolution=1,
-            j_resolution=1,
-        )
+        self.plotter.iren.add_observer("LeftButtonPressEvent", self.on_left_click)
 
-        self.pick_plane_actor = self.plotter.add_mesh(
-            self.pick_plane,
-            opacity=0.01,
-            color="white",
-            pickable=True,
-        )
+    def on_left_click(self, obj, event):
+        click_pos = self.plotter.iren.get_event_position()
 
-        self.plotter.enable_surface_point_picking(
-            callback=self.on_grid_click,
-            show_point=False,
-            left_clicking=True,
-            picker="cell",
-        )
+        picker = self.plotter.iren.interactor.GetPicker()
+        picker.Pick(click_pos[0], click_pos[1], 0, self.plotter.renderer)
 
+        world_pos = picker.GetPickPosition()
+        camera_pos = self.plotter.camera.position
+
+        point = self.intersect_camera_ray_with_layer(camera_pos, world_pos)
+
+        if point is not None:
+            self.on_grid_click(point)
+
+        return
+    
+    def intersect_camera_ray_with_layer(self, camera_pos, picked_pos):
+        z = self.current_layer
+
+        cx, cy, cz = camera_pos
+        px, py, pz = picked_pos
+
+        dz = pz - cz
+
+        if abs(dz) < 1e-8:
+            return None
+
+        t = (z - cz) / dz
+
+        if t < 0:
+            return None
+
+        x = cx + t * (px - cx)
+        y = cy + t * (py - cy)
+
+        return (x, y, z)
 
     def on_grid_click(self, point):
         if point is None:
