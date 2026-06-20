@@ -1,4 +1,5 @@
 import sys
+import math
 import numpy as np
 import pyvista as pv
 from pyvistaqt import QtInteractor
@@ -25,6 +26,11 @@ class GeneratorBuilderWindow(QMainWindow):
 
         main_widget = QWidget()
         main_layout = QHBoxLayout(main_widget)
+
+        # Tile Generation
+        self.generator_tiles = set()
+        self.tile_actors = {}
+        self.grid_actors = []
 
         # 3D viewport
         self.plotter = QtInteractor(main_widget)
@@ -79,6 +85,7 @@ class GeneratorBuilderWindow(QMainWindow):
 
         self.plotter.camera_position = "iso"
         self.plotter.reset_camera()
+        self.enable_cube_placement()
 
     def draw_active_layer_grid(self):
         half = self.generator_size // 2
@@ -106,6 +113,91 @@ class GeneratorBuilderWindow(QMainWindow):
                 color="lightgray",
                 width=1,
             )
+
+    def enable_cube_placement(self):
+        self.pick_plane = pv.Plane(
+            center=(0, 0, self.current_layer),
+            direction=(0, 0, 1),
+            i_size=self.generator_size,
+            j_size=self.generator_size,
+            i_resolution=1,
+            j_resolution=1,
+        )
+
+        self.pick_plane_actor = self.plotter.add_mesh(
+            self.pick_plane,
+            opacity=0.01,
+            color="white",
+            pickable=True,
+        )
+
+        self.plotter.enable_surface_point_picking(
+            callback=self.on_grid_click,
+            show_point=False,
+            left_clicking=True,
+            picker="cell",
+        )
+
+
+    def on_grid_click(self, point):
+        if point is None:
+            return
+
+        half = self.generator_size / 2
+
+        # Convert picked world point into grid-cell coordinate
+        x = math.floor(point[0] + half)
+        y = math.floor(point[1] + half)
+        z = self.current_layer
+
+        # Only allow visible cells
+        if x < 0 or x >= self.generator_size:
+            return
+        if y < 0 or y >= self.generator_size:
+            return
+        if z < 0 or z >= self.generator_size:
+            return
+
+        tile = (x, y, z)
+
+        if tile in self.generator_tiles:
+            self.generator_tiles.remove(tile)
+            self.remove_cube(tile)
+        else:
+            self.generator_tiles.add(tile)
+            self.add_cube(tile)
+
+
+    def add_cube(self, tile):
+        x, y, z = tile
+        half = self.generator_size / 2
+
+        cube = pv.Cube(
+            center=(
+                x - half + 0.5,
+                y - half + 0.5,
+                z + 0.5,
+            ),
+            x_length=1,
+            y_length=1,
+            z_length=1,
+        )
+
+        actor = self.plotter.add_mesh(
+            cube,
+            color="lightblue",
+            show_edges=True,
+            pickable=False,
+        )
+
+        self.tile_actors[tile] = actor
+
+
+    def remove_cube(self, tile):
+        actor = self.tile_actors.pop(tile, None)
+
+        if actor is not None:
+            self.plotter.remove_actor(actor)
 
     def next_layer(self):
         self.current_layer += 1
