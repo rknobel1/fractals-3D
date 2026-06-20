@@ -62,7 +62,7 @@ class GeneratorBuilderWindow(QMainWindow):
         self.plotter.add_axes()
 
         bounds_cube = pv.Cube(
-            center=(0, 0, 0),
+            center=(0, 0, self.generator_size / 2),
             x_length=self.generator_size,
             y_length=self.generator_size,
             z_length=self.generator_size,
