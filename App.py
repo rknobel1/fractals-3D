@@ -177,10 +177,13 @@ class GeneratorBuilderWindow(QMainWindow):
 
         if tile in self.generator_tiles:
             self.generator_tiles.remove(tile)
+            self.remove_cube(tile)
         else:
             self.generator_tiles.add(tile)
+            actor = self.add_cube(tile, color="lightblue", opacity=1.0)
+            self.tile_actors[tile] = actor
 
-        self.redraw_scene()
+        self.plotter.render()
 
     def redraw_scene(self):
         self.plotter.clear()
