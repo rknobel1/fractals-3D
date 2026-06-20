@@ -177,13 +177,52 @@ class GeneratorBuilderWindow(QMainWindow):
 
         if tile in self.generator_tiles:
             self.generator_tiles.remove(tile)
-            self.remove_cube(tile)
         else:
             self.generator_tiles.add(tile)
-            self.add_cube(tile)
 
+        self.redraw_scene()
 
-    def add_cube(self, tile):
+    def redraw_scene(self):
+        self.plotter.clear()
+
+        self.plotter.set_background("white")
+        self.plotter.add_axes()
+
+        self.draw_bounding_box()
+        self.draw_active_layer_grid()
+        self.draw_all_cubes()
+
+        self.plotter.render()
+
+    def draw_bounding_box(self):
+        bounds_cube = pv.Cube(
+            center=(0, 0, self.generator_size / 2),
+            x_length=self.generator_size,
+            y_length=self.generator_size,
+            z_length=self.generator_size,
+        )
+
+        self.plotter.add_mesh(
+            bounds_cube,
+            style="wireframe",
+            color="black",
+            line_width=2,
+            pickable=False,
+        )
+
+    def draw_all_cubes(self):
+        self.tile_actors.clear()
+
+        for tile in self.generator_tiles:
+            x, y, z = tile
+
+            opacity = 1.0 if z == self.current_layer else 0.25
+            color = "lightblue" if z == self.current_layer else "gray"
+
+            actor = self.add_cube(tile, color=color, opacity=opacity)
+            self.tile_actors[tile] = actor
+
+    def add_cube(self, tile, color="lightblue", opacity=1.0):
         x, y, z = tile
         half = self.generator_size / 2
 
@@ -200,12 +239,13 @@ class GeneratorBuilderWindow(QMainWindow):
 
         actor = self.plotter.add_mesh(
             cube,
-            color="lightblue",
+            color=color,
+            opacity=opacity,
             show_edges=True,
             pickable=False,
         )
 
-        self.tile_actors[tile] = actor
+        return actor
 
 
     def remove_cube(self, tile):
@@ -215,12 +255,20 @@ class GeneratorBuilderWindow(QMainWindow):
             self.plotter.remove_actor(actor)
 
     def next_layer(self):
+        if self.current_layer >= self.generator_size - 1:
+            return
+
         self.current_layer += 1
         self.layer_label.setText(f"Current Layer: Z = {self.current_layer}")
+        self.redraw_scene()
 
     def previous_layer(self):
+        if self.current_layer <= 0:
+            return
+
         self.current_layer -= 1
         self.layer_label.setText(f"Current Layer: Z = {self.current_layer}")
+        self.redraw_scene()
 
     def reset_view(self):
         self.plotter.camera_position = "iso"
