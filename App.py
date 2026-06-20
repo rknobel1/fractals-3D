@@ -1,4 +1,5 @@
 import sys
+import numpy as np
 import pyvista as pv
 from pyvistaqt import QtInteractor
 from PySide6.QtWidgets import (
@@ -20,6 +21,7 @@ class GeneratorBuilderWindow(QMainWindow):
         self.resize(1400, 900)
 
         self.current_layer = 0
+        self.generator_size = 10
 
         main_widget = QWidget()
         main_layout = QHBoxLayout(main_widget)
@@ -57,16 +59,53 @@ class GeneratorBuilderWindow(QMainWindow):
 
     def setup_scene(self):
         self.plotter.set_background("white")
-
-        self.plotter.show_grid()
         self.plotter.add_axes()
 
-        # Temporary starter cube
-        cube = pv.Cube(center=(0, 0, 0), x_length=1, y_length=1, z_length=1)
-        self.plotter.add_mesh(cube, color="lightblue", show_edges=True)
+        bounds_cube = pv.Cube(
+            center=(0, 0, 0),
+            x_length=self.generator_size,
+            y_length=self.generator_size,
+            z_length=self.generator_size,
+        )
+
+        self.plotter.add_mesh(
+            bounds_cube,
+            style="wireframe",
+            color="black",
+            line_width=2,
+        )
+
+        self.draw_active_layer_grid()
 
         self.plotter.camera_position = "iso"
         self.plotter.reset_camera()
+
+    def draw_active_layer_grid(self):
+        half = self.generator_size // 2
+        z = self.current_layer
+
+        for i in range(-half, half + 1):
+            horizontal_line = np.array([
+                [-half, i, z],
+                [half, i, z],
+            ])
+
+            vertical_line = np.array([
+                [i, -half, z],
+                [i, half, z],
+            ])
+
+            self.plotter.add_lines(
+                horizontal_line,
+                color="lightgray",
+                width=1,
+            )
+
+            self.plotter.add_lines(
+                vertical_line,
+                color="lightgray",
+                width=1,
+            )
 
     def next_layer(self):
         self.current_layer += 1
