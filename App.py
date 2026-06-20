@@ -43,13 +43,13 @@ class GeneratorBuilderWindow(QMainWindow):
         self.layer_label = QLabel(f"Current Layer: Z = {self.current_layer}")
         sidebar_layout.addWidget(self.layer_label)
 
-        next_btn = QPushButton("Next Layer")
-        next_btn.clicked.connect(self.next_layer)
-        sidebar_layout.addWidget(next_btn)
+        self.prev_btn = QPushButton("Previous Layer")
+        self.prev_btn.clicked.connect(self.previous_layer)
+        sidebar_layout.addWidget(self.prev_btn)
 
-        prev_btn = QPushButton("Previous Layer")
-        prev_btn.clicked.connect(self.previous_layer)
-        sidebar_layout.addWidget(prev_btn)
+        self.next_btn = QPushButton("Next Layer")
+        self.next_btn.clicked.connect(self.next_layer)
+        sidebar_layout.addWidget(self.next_btn)
 
         reset_btn = QPushButton("Reset View")
         reset_btn.clicked.connect(self.reset_view)
@@ -61,7 +61,15 @@ class GeneratorBuilderWindow(QMainWindow):
 
         self.setCentralWidget(main_widget)
 
+        self.update_layer_buttons()
         self.setup_scene()
+
+    def update_layer_buttons(self):
+        self.prev_btn.setEnabled(self.current_layer > 0)
+
+        self.next_btn.setEnabled(
+            self.current_layer < self.generator_size - 1
+        )
 
     def setup_scene(self):
         self.plotter.set_background("white")
@@ -86,6 +94,25 @@ class GeneratorBuilderWindow(QMainWindow):
         self.plotter.camera_position = "iso"
         self.plotter.reset_camera()
         self.enable_cube_placement()
+
+    def layer_has_tiles(self, z):
+        return any(tile_z == z for _x, _y, tile_z in self.generator_tiles)
+    
+    def has_higher_layer(self):
+        return any(tile_z > self.current_layer for _x, _y, tile_z in self.generator_tiles)
+
+    def update_layer_buttons(self):
+        self.prev_btn.setEnabled(self.current_layer > 0)
+
+        can_go_next = (
+            self.current_layer < self.generator_size - 1
+            and (
+                self.layer_has_tiles(self.current_layer)
+                or self.has_higher_layer()
+            )
+        )
+
+        self.next_btn.setEnabled(can_go_next)
 
     def draw_active_layer_grid(self):
         half = self.generator_size // 2
@@ -183,6 +210,7 @@ class GeneratorBuilderWindow(QMainWindow):
             actor = self.add_cube(tile, color="lightblue", opacity=1.0)
             self.tile_actors[tile] = actor
 
+        self.update_layer_buttons()
         self.plotter.render()
 
     def redraw_scene(self):
@@ -258,20 +286,29 @@ class GeneratorBuilderWindow(QMainWindow):
             self.plotter.remove_actor(actor)
 
     def next_layer(self):
-        if self.current_layer >= self.generator_size - 1:
+        if not self.next_btn.isEnabled():
             return
 
         self.current_layer += 1
         self.layer_label.setText(f"Current Layer: Z = {self.current_layer}")
+
+        self.update_layer_buttons()
         self.redraw_scene()
 
+
     def previous_layer(self):
-        if self.current_layer <= 0:
+        if not self.prev_btn.isEnabled():
             return
 
         self.current_layer -= 1
         self.layer_label.setText(f"Current Layer: Z = {self.current_layer}")
+
+        self.update_layer_buttons()
         self.redraw_scene()
+
+        def reset_view(self):
+            self.plotter.camera_position = "iso"
+            self.plotter.reset_camera()
 
     def reset_view(self):
         self.plotter.camera_position = "iso"
