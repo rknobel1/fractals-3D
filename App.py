@@ -52,9 +52,13 @@ class GeneratorBuilderWindow(QMainWindow):
         self.next_btn.clicked.connect(self.next_layer)
         sidebar_layout.addWidget(self.next_btn)
 
-        reset_btn = QPushButton("Reset View")
+        reset_btn = QPushButton("Reset Camera")
         reset_btn.clicked.connect(self.reset_view)
         sidebar_layout.addWidget(reset_btn)
+
+        reset_all_btn = QPushButton("Reset All")
+        reset_all_btn.clicked.connect(self.reset_all)
+        sidebar_layout.addWidget(reset_all_btn)
 
         self.done_btn = QPushButton("Done")
         self.done_btn.clicked.connect(self.enter_origin_selection_mode)
@@ -380,6 +384,22 @@ class GeneratorBuilderWindow(QMainWindow):
     def reset_view(self):
         self.plotter.camera_position = "iso"
         self.plotter.reset_camera()
+
+    def reset_all(self):
+        self.current_layer = 0
+        self.generator_tiles.clear()
+        self.tile_actors.clear()
+        self.grid_actors.clear()
+
+        self.mode = "build"
+        self.origin_tile = None
+
+        self.done_btn.setText("Done")
+        self.done_btn.setEnabled(False)
+        self.layer_label.setText(f"Current Layer: Z = {self.current_layer}")
+
+        self.update_layer_buttons()
+        self.redraw_scene()
 
     def enter_origin_selection_mode(self):
         if self.mode == "build":
