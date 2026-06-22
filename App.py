@@ -169,6 +169,7 @@ class GeneratorBuilderWindow(QMainWindow):
 
     def enable_cube_placement(self):
         self.plotter.iren.add_observer("LeftButtonPressEvent", self.on_left_click)
+        self.plotter.iren.add_observer("RightButtonPressEvent", self.on_right_click)
 
     def on_left_click(self, obj, event):
         click_pos = self.plotter.iren.get_event_position()
@@ -185,6 +186,42 @@ class GeneratorBuilderWindow(QMainWindow):
             self.on_grid_click(point)
 
         return
+    
+    def on_right_click(self, obj, event):
+        if self.mode != "build":
+            return
+
+        click_pos = self.plotter.iren.get_event_position()
+
+        picker = self.plotter.iren.interactor.GetPicker()
+        picker.Pick(click_pos[0], click_pos[1], 0, self.plotter.renderer)
+
+        world_pos = picker.GetPickPosition()
+        camera_pos = self.plotter.camera.position
+
+        point = self.intersect_camera_ray_with_layer(camera_pos, world_pos)
+
+        if point is None:
+            return
+
+        half = self.generator_size / 2
+
+        x = math.floor(point[0] + half)
+        y = math.floor(point[1] + half)
+        z = self.current_layer
+
+        tile = (x, y, z)
+
+        if tile in self.generator_tiles:
+            self.generator_tiles.remove(tile)
+            self.remove_cube(tile)
+
+            if self.origin_tile == tile:
+                self.origin_tile = None
+
+            self.update_done_button()
+            self.update_layer_buttons()
+            self.plotter.render()
     
     def intersect_camera_ray_with_layer(self, camera_pos, picked_pos):
         z = self.current_layer
@@ -233,10 +270,7 @@ class GeneratorBuilderWindow(QMainWindow):
             self.set_origin_tile(tile)
             return
 
-        if tile in self.generator_tiles:
-            self.generator_tiles.remove(tile)
-            self.remove_cube(tile)
-        else:
+        if tile not in self.generator_tiles:
             self.generator_tiles.add(tile)
             actor = self.add_cube(tile, color="lightblue", opacity=1.0)
             self.tile_actors[tile] = actor
