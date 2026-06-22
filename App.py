@@ -11,10 +11,12 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QPushButton,
     QLabel,
+    QComboBox,
 )
 from collections import deque
 from Utils import *
 
+MAX_SIM_SIZE = 30_000
 
 class GeneratorBuilderWindow(QMainWindow):
     def __init__(self):
@@ -64,6 +66,21 @@ class GeneratorBuilderWindow(QMainWindow):
         self.done_btn = QPushButton("Done")
         self.done_btn.clicked.connect(self.enter_origin_selection_mode)
         sidebar_layout.addWidget(self.done_btn)
+
+        self.stage_label = QLabel("Simulation Stage")
+        sidebar_layout.addWidget(self.stage_label)
+        self.stage_label.hide()
+
+        self.stage_combo = QComboBox()
+        sidebar_layout.addWidget(self.stage_combo)
+        self.stage_combo.hide()
+
+        self.run_btn = QPushButton("Run")
+        self.run_btn.clicked.connect(self.run_simulation)
+        sidebar_layout.addWidget(self.run_btn)
+        self.run_btn.hide()
+
+        self.stages = 1
 
         self.done_btn.setEnabled(False)
 
@@ -395,6 +412,12 @@ class GeneratorBuilderWindow(QMainWindow):
         self.mode = "build"
         self.origin_tile = None
 
+        self.stage_label.hide()
+        self.stage_combo.hide()
+        self.run_btn.hide()
+        self.done_btn.show()
+        self.stages = 1
+
         self.done_btn.setText("Done")
         self.done_btn.setEnabled(False)
         self.layer_label.setText(f"Current Layer: Z = {self.current_layer}")
@@ -422,10 +445,7 @@ class GeneratorBuilderWindow(QMainWindow):
             if self.origin_tile is None:
                 return
 
-            self.mode = "origin_selected"
-            self.done_btn.setText("Origin Selected")
-            self.done_btn.setEnabled(False)
-            self.layer_label.setText(f"Origin selected: {self.origin_tile}")
+            self.show_stage_selection()
             return
         
     def check_valid_seed_3d(self):
@@ -506,6 +526,7 @@ class GeneratorBuilderWindow(QMainWindow):
 
         return True, ""
 
+    @staticmethod
     def create_seed(tile_positions, origin_tile_cords):
         tile_positions = dict(tile_positions)
         new_tiles = dict([])
@@ -764,6 +785,63 @@ class GeneratorBuilderWindow(QMainWindow):
                         stack.append(adj_tile)
 
         return seed_tile
+    
+    def show_stage_selection(self):
+        self.mode = "select_stages"
+
+        self.done_btn.hide()
+        self.stage_label.show()
+        self.stage_combo.show()
+        self.run_btn.show()
+
+        self.stage_combo.clear()
+
+        options = []
+        num_tiles = max(1, len(self.generator_tiles))
+        stage = 1
+        actual_stage = 1
+
+        while num_tiles < MAX_SIM_SIZE:
+            options.append((stage, actual_stage))
+            num_tiles *= num_tiles
+            stage += 1
+            actual_stage *= 2
+
+        if not options:
+            options = [(1, 1)]
+
+        for stage, actual_stage in options:
+            self.stage_combo.addItem(
+                f"{stage} - (stage: {actual_stage})",
+                stage,
+            )
+
+        self.layer_label.setText(
+            f"Origin selected: {self.origin_tile}. Choose simulation depth."
+        )
+
+
+    def run_simulation(self):
+        self.stages = self.stage_combo.currentData()
+
+        if self.origin_tile is None:
+            return
+
+        seed_tile = GeneratorBuilderWindow.create_seed(
+            {
+                f"{x},{y},{z}": None
+                for x, y, z in self.generator_tiles
+            },
+            list(self.origin_tile),
+        )
+
+        # Hook your 3D simulation/result viewer here.
+        # Example:
+        # result = run_simulation_clean(seed_tile, self.stages)
+
+        self.layer_label.setText(
+            f"Running simulation with origin {self.origin_tile}, stages={self.stages}"
+        )
 
 
 if __name__ == "__main__":
