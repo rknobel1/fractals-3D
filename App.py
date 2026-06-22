@@ -281,7 +281,7 @@ class GeneratorBuilderWindow(QMainWindow):
 
             if tile == self.origin_tile:
                 color = "black"
-                opacity = 1.0
+                opacity = 1.0 if z == self.current_layer else 0.25
             else:
                 color = "lightblue" if z == self.current_layer else "gray"
                 opacity = 1.0 if z == self.current_layer else 0.25
