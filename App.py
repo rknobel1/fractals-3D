@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QLabel,
 )
 from collections import deque
+from Utils import *
 
 
 class GeneratorBuilderWindow(QMainWindow):
@@ -504,6 +505,265 @@ class GeneratorBuilderWindow(QMainWindow):
             return False, "Not feasible generator (top/bottom)"
 
         return True, ""
+
+    def create_seed(tile_positions, origin_tile_cords):
+        tile_positions = dict(tile_positions)
+        new_tiles = dict([])
+        stack = deque()
+        stack.append([origin_tile_cords[0], origin_tile_cords[1], None])
+        seed_tile = None
+
+        visited = []
+
+        min_x, max_x, min_y, max_y, min_z, max_z = math.inf, -1, math.inf, -1, math.inf, -1
+        for cord in tile_positions:
+            [x, y, z] = cord.split(',')
+            x, y, z = int(x), int(y), int(z)
+
+            if x < min_x:
+                min_x = x
+            if x > max_x:
+                max_x = x
+            if y < min_y:
+                min_y = y
+            if y > max_y:
+                max_y = y
+            if z < min_z:
+                min_z = z
+            if z > max_z:
+                max_z = z
+
+        while len(stack) > 0:
+            [x, y, z, prev] = stack.popleft()
+            next_dirs = []
+
+            if [x, y, z] not in visited:
+                visited.append([x, y, z])
+
+            if get_tag(x, y - 1, z) in tile_positions and get_tag(x, y - 1, z) not in visited:
+                stack.append([x, y - 1, z, 'S'])
+                visited.append(get_tag(x, y - 1, z))
+                next_dirs.append('N')
+            if get_tag(x + 1, y, z) in tile_positions and get_tag(x + 1, y, z) not in visited:
+                stack.append([x + 1, y, z, 'W'])
+                visited.append(get_tag(x + 1, y, z))
+                next_dirs.append('E')
+            if get_tag(x - 1, y, z) in tile_positions and get_tag(x - 1, y, z) not in visited:
+                stack.append([x - 1, y, z, 'E'])
+                visited.append(get_tag(x - 1, y, z))
+                next_dirs.append('W')
+            if get_tag(x, y + 1, z) in tile_positions and get_tag(x, y + 1, z) not in visited:
+                stack.append([x, y + 1, z, 'N'])
+                visited.append(get_tag(x, y + 1, z))
+                next_dirs.append('S')
+            if get_tag(x, y, z + 1) in tile_positions and get_tag(x, y, z + 1) not in visited:
+                stack.append([x, y, z + 1, 'U'])
+                visited.append(get_tag(x, y, z + 1))
+                next_dirs.append('D')
+            if get_tag(x, y, z - 1) in tile_positions and get_tag(x, y, z - 1) not in visited:
+                stack.append([x, y, z - 1, 'D'])
+                visited.append(get_tag(x, y, z - 1))
+                next_dirs.append('U')
+
+            if get_tag(x, y, z) in tile_positions:
+                del tile_positions[get_tag(x, y, z)]
+
+            if len(next_dirs) == 0:
+                next_dirs = None
+
+            if prev is None:
+                tile = Tile(prev, next_dirs)
+            else:
+                tile = Tile([prev], next_dirs)
+
+            if prev is None or next_dirs is None:
+                tile.terminal = True
+            new_tiles[get_tag(x, y, z)] = tile
+
+            if prev == 'N':
+                tile.tile_to_N = new_tiles[get_tag(x, y - 1, z)]
+                new_tiles[get_tag(x, y - 1, z)].tile_to_S = tile
+                tile.N = 'N'
+            if prev == 'E':
+                tile.tile_to_E = new_tiles[get_tag(x + 1, y, z)]
+                new_tiles[get_tag(x + 1, y, z)].tile_to_W = tile
+                tile.E = 'N'
+            if prev == 'W':
+                tile.tile_to_W = new_tiles[get_tag(x - 1, y, z)]
+                new_tiles[get_tag(x - 1, y, z)].tile_to_E = tile
+                tile.W = 'N'
+            if prev == 'S':
+                tile.tile_to_S = new_tiles[get_tag(x, y + 1, z)]
+                new_tiles[get_tag(x, y + 1, z)].tile_to_N = tile
+                tile.S = 'N'
+            if prev == 'U':
+                tile.tile_to_U = new_tiles[get_tag(x, y, z + 1)]
+                new_tiles[get_tag(x, y, z + 1)].tile_to_D = tile
+                tile.U = 'N'
+            if prev == 'D':
+                tile.tile_to_D = new_tiles[get_tag(x, y, z - 1)]
+                new_tiles[get_tag(x, y, z - 1)].tile_to_U = tile
+                tile.D = 'N'
+
+            if next_dirs is not None:
+                for d in next_dirs:
+                    if d == 'N':
+                        tile.N = 'N'
+                    if d == 'E':
+                        tile.E = 'N'
+                    if d == 'W':
+                        tile.W = 'N'
+                    if d == 'S':
+                        tile.S = 'N'
+                    if d == 'U':
+                        tile.U = 'N'
+                    if d == 'D':
+                        tile.D = 'N'
+
+            if [x, y, z] == origin_tile_cords:
+                seed_tile = tile
+                tile.original_seed = True
+                if tile.next is not None and len(tile.next) > 1:
+                    tile.terminal = False
+
+        ktn, kte, ktw, kts, ktu, ktd = None, None, None, None, None, None
+
+        for cord in new_tiles:
+            [x, y, z] = cord.split(',')
+            x, y, z = int(x), int(y), int(z)
+
+            if (x == min_x and get_tag(max_x, y, z) in new_tiles) or (x == max_x and get_tag(min_x, y, z) in new_tiles):
+                if [x, y, z] == origin_tile_cords:
+                    ktw, kte = new_tiles[get_tag(min_x, y, z)], new_tiles[get_tag(max_x, y, z)]
+                elif ktw is None and kte is None:
+                    ktw, kte = new_tiles[get_tag(min_x, y, z)], new_tiles[get_tag(max_x, y, z)]
+            if (y == min_y and get_tag(x, max_y, z) in new_tiles) or (y == max_y and get_tag(x, min_y, z) in new_tiles):
+                if [x, y, z] == origin_tile_cords:
+                    ktn, kts = new_tiles[get_tag(x, min_y, z)], new_tiles[get_tag(x, max_y, z)]
+                elif ktn is None and kts is None:
+                    ktn, kts = new_tiles[get_tag(x, min_y, z)], new_tiles[get_tag(x, max_y, z)]
+            if (z == min_z and get_tag(x, y, max_z) in new_tiles) or (z == max_z and get_tag(x, y, min_z) in new_tiles):
+                if [x, y, z] == origin_tile_cords:
+                    ktu, ktd = new_tiles[get_tag(x, y, min_z)], new_tiles[get_tag(x, y, max_z)]
+                elif ktn is None and kts is None:
+                    ktu, ktd = new_tiles[get_tag(x, y, min_z)], new_tiles[get_tag(x, y, max_z)]
+
+        ktn.key_tile_N = None
+        kte.key_tile_E = None
+        ktw.key_tile_W = None
+        kts.key_tile_S = None
+        ktu.key_tile_U = None
+        ktd.key_tile_D = None
+
+        visited_tiles = []
+        stack = deque([ktn])
+        while stack:
+            cur_tile = stack.pop()
+            visited_tiles.append(cur_tile)
+            if cur_tile.next is not None:
+                for n in cur_tile.next:
+                    adj_tile = retrieve_tile(cur_tile, n)
+                    if adj_tile not in visited_tiles:
+                        adj_tile.key_tile_N = [opp(n)]
+                        stack.append(adj_tile)
+            if cur_tile.previous is not None:
+                for n in cur_tile.previous:
+                    adj_tile = retrieve_tile(cur_tile, n)
+                    if adj_tile not in visited_tiles:
+                        adj_tile.key_tile_N = [opp(n)]
+                        stack.append(adj_tile)
+
+        visited_tiles = []
+        stack = deque([kte])
+        while stack:
+            cur_tile = stack.pop()
+            visited_tiles.append(cur_tile)
+            if cur_tile.next is not None:
+                for n in cur_tile.next:
+                    adj_tile = retrieve_tile(cur_tile, n)
+                    if adj_tile not in visited_tiles:
+                        adj_tile.key_tile_E = [opp(n)]
+                        stack.append(adj_tile)
+            if cur_tile.previous is not None:
+                for n in cur_tile.previous:
+                    adj_tile = retrieve_tile(cur_tile, n)
+                    if adj_tile not in visited_tiles:
+                        adj_tile.key_tile_E = [opp(n)]
+                        stack.append(adj_tile)
+
+        visited_tiles = []
+        stack = deque([ktw])
+        while stack:
+            cur_tile = stack.pop()
+            visited_tiles.append(cur_tile)
+            if cur_tile.next is not None:
+                for n in cur_tile.next:
+                    adj_tile = retrieve_tile(cur_tile, n)
+                    if adj_tile not in visited_tiles:
+                        adj_tile.key_tile_W = [opp(n)]
+                        stack.append(adj_tile)
+            if cur_tile.previous is not None:
+                for n in cur_tile.previous:
+                    adj_tile = retrieve_tile(cur_tile, n)
+                    if adj_tile not in visited_tiles:
+                        adj_tile.key_tile_W = [opp(n)]
+                        stack.append(adj_tile)
+
+        visited_tiles = []
+        stack = deque([kts])
+        while stack:
+            cur_tile = stack.pop()
+            visited_tiles.append(cur_tile)
+            if cur_tile.next is not None:
+                for n in cur_tile.next:
+                    adj_tile = retrieve_tile(cur_tile, n)
+                    if adj_tile not in visited_tiles:
+                        adj_tile.key_tile_S = [opp(n)]
+                        stack.append(adj_tile)
+            if cur_tile.previous is not None:
+                for n in cur_tile.previous:
+                    adj_tile = retrieve_tile(cur_tile, n)
+                    if adj_tile not in visited_tiles:
+                        adj_tile.key_tile_S = [opp(n)]
+                        stack.append(adj_tile)
+
+        visited_tiles = []
+        stack = deque([ktu])
+        while stack:
+            cur_tile = stack.pop()
+            visited_tiles.append(cur_tile)
+            if cur_tile.next is not None:
+                for n in cur_tile.next:
+                    adj_tile = retrieve_tile(cur_tile, n)
+                    if adj_tile not in visited_tiles:
+                        adj_tile.key_tile_U = [opp(n)]
+                        stack.append(adj_tile)
+            if cur_tile.previous is not None:
+                for n in cur_tile.previous:
+                    adj_tile = retrieve_tile(cur_tile, n)
+                    if adj_tile not in visited_tiles:
+                        adj_tile.key_tile_U = [opp(n)]
+                        stack.append(adj_tile)
+
+        visited_tiles = []
+        stack = deque([ktd])
+        while stack:
+            cur_tile = stack.pop()
+            visited_tiles.append(cur_tile)
+            if cur_tile.next is not None:
+                for n in cur_tile.next:
+                    adj_tile = retrieve_tile(cur_tile, n)
+                    if adj_tile not in visited_tiles:
+                        adj_tile.key_tile_D = [opp(n)]
+                        stack.append(adj_tile)
+            if cur_tile.previous is not None:
+                for n in cur_tile.previous:
+                    adj_tile = retrieve_tile(cur_tile, n)
+                    if adj_tile not in visited_tiles:
+                        adj_tile.key_tile_D = [opp(n)]
+                        stack.append(adj_tile)
+
+        return seed_tile
 
 
 if __name__ == "__main__":
