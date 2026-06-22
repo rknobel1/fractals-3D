@@ -55,7 +55,17 @@ class GeneratorBuilderWindow(QMainWindow):
         reset_btn.clicked.connect(self.reset_view)
         sidebar_layout.addWidget(reset_btn)
 
+        self.done_btn = QPushButton("Done")
+        self.done_btn.clicked.connect(self.enter_origin_selection_mode)
+        sidebar_layout.addWidget(self.done_btn)
+
+        self.done_btn.setEnabled(False)
+
         sidebar_layout.addStretch()
+
+        # Selecting origin cube
+        self.mode = "build"
+        self.origin_tile = None
 
         main_layout.addWidget(sidebar, stretch=1)
 
@@ -64,12 +74,15 @@ class GeneratorBuilderWindow(QMainWindow):
         self.update_layer_buttons()
         self.setup_scene()
 
-    def update_layer_buttons(self):
-        self.prev_btn.setEnabled(self.current_layer > 0)
+    def set_origin_tile(self, tile):
+        self.origin_tile = tile
+        self.mode = "origin_selected"
 
-        self.next_btn.setEnabled(
-            self.current_layer < self.generator_size - 1
-        )
+        self.redraw_scene()
+
+        self.layer_label.setText(f"Origin selected: {tile}")
+        self.done_btn.setText("Origin Selected")
+        self.done_btn.setEnabled(False)
 
     def setup_scene(self):
         self.plotter.set_background("white")
@@ -113,6 +126,9 @@ class GeneratorBuilderWindow(QMainWindow):
         )
 
         self.next_btn.setEnabled(can_go_next)
+
+    def update_done_button(self):
+        self.done_btn.setEnabled(len(self.generator_tiles) > 0)
 
     def draw_active_layer_grid(self):
         half = self.generator_size // 2
@@ -187,12 +203,10 @@ class GeneratorBuilderWindow(QMainWindow):
 
         half = self.generator_size / 2
 
-        # Convert picked world point into grid-cell coordinate
         x = math.floor(point[0] + half)
         y = math.floor(point[1] + half)
         z = self.current_layer
 
-        # Only allow visible cells
         if x < 0 or x >= self.generator_size:
             return
         if y < 0 or y >= self.generator_size:
@@ -202,6 +216,13 @@ class GeneratorBuilderWindow(QMainWindow):
 
         tile = (x, y, z)
 
+        if self.mode == "select_origin":
+            if tile not in self.generator_tiles:
+                return
+
+            self.set_origin_tile(tile)
+            return
+
         if tile in self.generator_tiles:
             self.generator_tiles.remove(tile)
             self.remove_cube(tile)
@@ -210,6 +231,7 @@ class GeneratorBuilderWindow(QMainWindow):
             actor = self.add_cube(tile, color="lightblue", opacity=1.0)
             self.tile_actors[tile] = actor
 
+        self.update_done_button()
         self.update_layer_buttons()
         self.plotter.render()
 
@@ -245,10 +267,14 @@ class GeneratorBuilderWindow(QMainWindow):
         self.tile_actors.clear()
 
         for tile in self.generator_tiles:
-            x, y, z = tile
+            _x, _y, z = tile
 
-            opacity = 1.0 if z == self.current_layer else 0.25
-            color = "lightblue" if z == self.current_layer else "gray"
+            if tile == self.origin_tile:
+                color = "black"
+                opacity = 1.0
+            else:
+                color = "lightblue" if z == self.current_layer else "gray"
+                opacity = 1.0 if z == self.current_layer else 0.25
 
             actor = self.add_cube(tile, color=color, opacity=opacity)
             self.tile_actors[tile] = actor
@@ -306,13 +332,17 @@ class GeneratorBuilderWindow(QMainWindow):
         self.update_layer_buttons()
         self.redraw_scene()
 
-        def reset_view(self):
-            self.plotter.camera_position = "iso"
-            self.plotter.reset_camera()
-
     def reset_view(self):
         self.plotter.camera_position = "iso"
         self.plotter.reset_camera()
+
+    def enter_origin_selection_mode(self):
+        if not self.generator_tiles:
+            self.layer_label.setText("Place at least one cube first")
+            return
+
+        self.mode = "select_origin"
+        self.layer_label.setText("Select origin cube")
 
 
 if __name__ == "__main__":
