@@ -76,13 +76,14 @@ class GeneratorBuilderWindow(QMainWindow):
 
     def set_origin_tile(self, tile):
         self.origin_tile = tile
-        self.mode = "origin_selected"
 
         self.redraw_scene()
 
-        self.layer_label.setText(f"Origin selected: {tile}")
-        self.done_btn.setText("Origin Selected")
-        self.done_btn.setEnabled(False)
+        self.layer_label.setText(
+            f"Selected origin: {tile} — press Done to confirm"
+        )
+        self.done_btn.setText("Done")
+        self.done_btn.setEnabled(True)
 
     def setup_scene(self):
         self.plotter.set_background("white")
@@ -113,6 +114,15 @@ class GeneratorBuilderWindow(QMainWindow):
     
     def has_higher_layer(self):
         return any(tile_z > self.current_layer for _x, _y, tile_z in self.generator_tiles)
+    
+    def get_layer_label_text(self):
+        if self.mode == "select_origin":
+            return f"Select origin cube — Layer Z = {self.current_layer}"
+
+        if self.origin_tile is not None:
+            return f"Origin selected: {self.origin_tile}"
+
+        return f"Current Layer: Z = {self.current_layer}"
 
     def update_layer_buttons(self):
         self.prev_btn.setEnabled(self.current_layer > 0)
@@ -316,7 +326,7 @@ class GeneratorBuilderWindow(QMainWindow):
             return
 
         self.current_layer += 1
-        self.layer_label.setText(f"Current Layer: Z = {self.current_layer}")
+        self.layer_label.setText(self.get_layer_label_text())
 
         self.update_layer_buttons()
         self.redraw_scene()
@@ -327,7 +337,7 @@ class GeneratorBuilderWindow(QMainWindow):
             return
 
         self.current_layer -= 1
-        self.layer_label.setText(f"Current Layer: Z = {self.current_layer}")
+        self.layer_label.setText(self.get_layer_label_text())
 
         self.update_layer_buttons()
         self.redraw_scene()
@@ -337,12 +347,27 @@ class GeneratorBuilderWindow(QMainWindow):
         self.plotter.reset_camera()
 
     def enter_origin_selection_mode(self):
-        if not self.generator_tiles:
-            self.layer_label.setText("Place at least one cube first")
+        if self.mode == "build":
+            if not self.generator_tiles:
+                return
+
+            self.mode = "select_origin"
+            self.done_btn.setText("Confirm Origin")
+            self.done_btn.setEnabled(False)
+            self.layer_label.setText(
+                f"Select origin cube — Layer Z = {self.current_layer}"
+            )
             return
 
-        self.mode = "select_origin"
-        self.layer_label.setText("Select origin cube")
+        if self.mode == "select_origin":
+            if self.origin_tile is None:
+                return
+
+            self.mode = "origin_selected"
+            self.done_btn.setText("Origin Selected")
+            self.done_btn.setEnabled(False)
+            self.layer_label.setText(f"Origin selected: {self.origin_tile}")
+            return
 
 
 if __name__ == "__main__":
