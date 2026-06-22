@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QLabel,
 )
+from collections import deque
 
 
 class GeneratorBuilderWindow(QMainWindow):
@@ -382,7 +383,10 @@ class GeneratorBuilderWindow(QMainWindow):
 
     def enter_origin_selection_mode(self):
         if self.mode == "build":
-            if not self.generator_tiles:
+            valid, error = self.check_valid_seed_3d()
+
+            if not valid:
+                self.layer_label.setText(error)
                 return
 
             self.mode = "select_origin"
@@ -402,6 +406,84 @@ class GeneratorBuilderWindow(QMainWindow):
             self.done_btn.setEnabled(False)
             self.layer_label.setText(f"Origin selected: {self.origin_tile}")
             return
+        
+    def check_valid_seed_3d(self):
+        if len(self.generator_tiles) < 1:
+            return False, "Left click to place tiles"
+
+        # Connectivity check
+        start = next(iter(self.generator_tiles))
+        visited = set()
+        queue = deque([start])
+
+        directions = [
+            (1, 0, 0),
+            (-1, 0, 0),
+            (0, 1, 0),
+            (0, -1, 0),
+            (0, 0, 1),
+            (0, 0, -1),
+        ]
+
+        while queue:
+            tile = queue.popleft()
+
+            if tile in visited:
+                continue
+
+            visited.add(tile)
+
+            x, y, z = tile
+            for dx, dy, dz in directions:
+                neighbor = (x + dx, y + dy, z + dz)
+
+                if neighbor in self.generator_tiles and neighbor not in visited:
+                    queue.append(neighbor)
+
+        if len(visited) != len(self.generator_tiles):
+            return False, "Fractal must be connected"
+
+        xs = [x for x, _y, _z in self.generator_tiles]
+        ys = [y for _x, y, _z in self.generator_tiles]
+        zs = [z for _x, _y, z in self.generator_tiles]
+
+        min_x, max_x = min(xs), max(xs)
+        min_y, max_y = min(ys), max(ys)
+        min_z, max_z = min(zs), max(zs)
+
+        has_east_west = False
+        has_north_south = False
+        has_top_bottom = False
+
+        for x, y, z in self.generator_tiles:
+            if (
+                (x == min_x and (max_x, y, z) in self.generator_tiles)
+                or (x == max_x and (min_x, y, z) in self.generator_tiles)
+            ):
+                has_east_west = True
+
+            if (
+                (y == min_y and (x, max_y, z) in self.generator_tiles)
+                or (y == max_y and (x, min_y, z) in self.generator_tiles)
+            ):
+                has_north_south = True
+
+            if (
+                (z == min_z and (x, y, max_z) in self.generator_tiles)
+                or (z == max_z and (x, y, min_z) in self.generator_tiles)
+            ):
+                has_top_bottom = True
+
+        if not has_north_south:
+            return False, "Not feasible generator (north/south)"
+
+        if not has_east_west:
+            return False, "Not feasible generator (east/west)"
+
+        if not has_top_bottom:
+            return False, "Not feasible generator (top/bottom)"
+
+        return True, ""
 
 
 if __name__ == "__main__":
