@@ -128,7 +128,11 @@ class GeneratorBuilderWindow(QMainWindow):
 
         self.draw_active_layer_grid()
 
-        self.plotter.camera_position = "iso"
+        self.plotter.camera_position = [
+            (0, -25, 20),  # camera position (south of model)
+            (0, 0, 5),     # focal point
+            (0, 0, 1),     # up direction
+        ]
         self.plotter.reset_camera()
         self.enable_cube_placement()
 
@@ -400,7 +404,11 @@ class GeneratorBuilderWindow(QMainWindow):
         self.redraw_scene()
 
     def reset_view(self):
-        self.plotter.camera_position = "iso"
+        self.plotter.camera_position = [
+            (0, -25, 20),  # camera position (south of model)
+            (0, 0, 5),     # focal point
+            (0, 0, 1),     # up direction
+        ]
         self.plotter.reset_camera()
 
     def reset_all(self):
@@ -531,7 +539,7 @@ class GeneratorBuilderWindow(QMainWindow):
         tile_positions = dict(tile_positions)
         new_tiles = dict([])
         stack = deque()
-        stack.append([origin_tile_cords[0], origin_tile_cords[1], None])
+        stack.append([origin_tile_cords[0], origin_tile_cords[1], origin_tile_cords[2], None])
         seed_tile = None
 
         visited = []
@@ -561,9 +569,9 @@ class GeneratorBuilderWindow(QMainWindow):
             if [x, y, z] not in visited:
                 visited.append([x, y, z])
 
-            if get_tag(x, y - 1, z) in tile_positions and get_tag(x, y - 1, z) not in visited:
-                stack.append([x, y - 1, z, 'S'])
-                visited.append(get_tag(x, y - 1, z))
+            if get_tag(x, y + 1, z) in tile_positions and get_tag(x, y + 1, z) not in visited:
+                stack.append([x, y + 1, z, 'S'])
+                visited.append(get_tag(x, y + 1, z))
                 next_dirs.append('N')
             if get_tag(x + 1, y, z) in tile_positions and get_tag(x + 1, y, z) not in visited:
                 stack.append([x + 1, y, z, 'W'])
@@ -573,18 +581,18 @@ class GeneratorBuilderWindow(QMainWindow):
                 stack.append([x - 1, y, z, 'E'])
                 visited.append(get_tag(x - 1, y, z))
                 next_dirs.append('W')
-            if get_tag(x, y + 1, z) in tile_positions and get_tag(x, y + 1, z) not in visited:
-                stack.append([x, y + 1, z, 'N'])
-                visited.append(get_tag(x, y + 1, z))
+            if get_tag(x, y - 1, z) in tile_positions and get_tag(x, y - 1, z) not in visited:
+                stack.append([x, y - 1, z, 'N'])
+                visited.append(get_tag(x, y - 1, z))
                 next_dirs.append('S')
             if get_tag(x, y, z + 1) in tile_positions and get_tag(x, y, z + 1) not in visited:
-                stack.append([x, y, z + 1, 'U'])
+                stack.append([x, y, z + 1, 'D'])
                 visited.append(get_tag(x, y, z + 1))
-                next_dirs.append('D')
-            if get_tag(x, y, z - 1) in tile_positions and get_tag(x, y, z - 1) not in visited:
-                stack.append([x, y, z - 1, 'D'])
-                visited.append(get_tag(x, y, z - 1))
                 next_dirs.append('U')
+            if get_tag(x, y, z - 1) in tile_positions and get_tag(x, y, z - 1) not in visited:
+                stack.append([x, y, z - 1, 'U'])
+                visited.append(get_tag(x, y, z - 1))
+                next_dirs.append('D')
 
             if get_tag(x, y, z) in tile_positions:
                 del tile_positions[get_tag(x, y, z)]
@@ -602,8 +610,8 @@ class GeneratorBuilderWindow(QMainWindow):
             new_tiles[get_tag(x, y, z)] = tile
 
             if prev == 'N':
-                tile.tile_to_N = new_tiles[get_tag(x, y - 1, z)]
-                new_tiles[get_tag(x, y - 1, z)].tile_to_S = tile
+                tile.tile_to_N = new_tiles[get_tag(x, y + 1, z)]
+                new_tiles[get_tag(x, y + 1, z)].tile_to_S = tile
                 tile.N = 'N'
             if prev == 'E':
                 tile.tile_to_E = new_tiles[get_tag(x + 1, y, z)]
@@ -614,8 +622,8 @@ class GeneratorBuilderWindow(QMainWindow):
                 new_tiles[get_tag(x - 1, y, z)].tile_to_E = tile
                 tile.W = 'N'
             if prev == 'S':
-                tile.tile_to_S = new_tiles[get_tag(x, y + 1, z)]
-                new_tiles[get_tag(x, y + 1, z)].tile_to_N = tile
+                tile.tile_to_S = new_tiles[get_tag(x, y - 1, z)]
+                new_tiles[get_tag(x, y - 1, z)].tile_to_N = tile
                 tile.S = 'N'
             if prev == 'U':
                 tile.tile_to_U = new_tiles[get_tag(x, y, z + 1)]
@@ -660,14 +668,14 @@ class GeneratorBuilderWindow(QMainWindow):
                     ktw, kte = new_tiles[get_tag(min_x, y, z)], new_tiles[get_tag(max_x, y, z)]
             if (y == min_y and get_tag(x, max_y, z) in new_tiles) or (y == max_y and get_tag(x, min_y, z) in new_tiles):
                 if [x, y, z] == origin_tile_cords:
-                    ktn, kts = new_tiles[get_tag(x, min_y, z)], new_tiles[get_tag(x, max_y, z)]
+                    ktn, kts = new_tiles[get_tag(x, max_y, z)], new_tiles[get_tag(x, min_y, z)]
                 elif ktn is None and kts is None:
-                    ktn, kts = new_tiles[get_tag(x, min_y, z)], new_tiles[get_tag(x, max_y, z)]
+                    ktn, kts = new_tiles[get_tag(x, max_y, z)], new_tiles[get_tag(x, min_y, z)]
             if (z == min_z and get_tag(x, y, max_z) in new_tiles) or (z == max_z and get_tag(x, y, min_z) in new_tiles):
                 if [x, y, z] == origin_tile_cords:
-                    ktu, ktd = new_tiles[get_tag(x, y, min_z)], new_tiles[get_tag(x, y, max_z)]
-                elif ktn is None and kts is None:
-                    ktu, ktd = new_tiles[get_tag(x, y, min_z)], new_tiles[get_tag(x, y, max_z)]
+                    ktu, ktd = new_tiles[get_tag(x, y, max_z)], new_tiles[get_tag(x, y, min_z)]
+                elif ktu is None and ktd is None:
+                    ktu, ktd = new_tiles[get_tag(x, y, max_z)], new_tiles[get_tag(x, y, min_z)]
 
         ktn.key_tile_N = None
         kte.key_tile_E = None
@@ -820,6 +828,84 @@ class GeneratorBuilderWindow(QMainWindow):
             f"Origin selected: {self.origin_tile}. Choose simulation depth."
         )
 
+    @staticmethod
+    def extract_3d_layout(seed_tile):
+        coords = {}
+        visited = set()
+
+        queue = deque()
+        queue.append((seed_tile, (0, 0, 0)))
+
+        while queue:
+            tile, pos = queue.popleft()
+
+            if id(tile) in visited:
+                continue
+
+            visited.add(id(tile))
+            coords[tile] = pos
+
+            x, y, z = pos
+
+            neighbors = [
+                (tile.tile_to_N, (x, y + 1, z)),
+                (tile.tile_to_S, (x, y - 1, z)),
+                (tile.tile_to_E, (x + 1, y, z)),
+                (tile.tile_to_W, (x - 1, y, z)),
+                (tile.tile_to_U, (x, y, z + 1)),
+                (tile.tile_to_D, (x, y, z - 1)),
+            ]
+
+            for neighbor, npos in neighbors:
+                if neighbor is not None:
+                    queue.append((neighbor, npos))
+
+        return coords
+    
+    def display_simulation_result(self, seed_tile):
+        coords = GeneratorBuilderWindow.extract_3d_layout(seed_tile)
+
+        self.plotter.clear()
+        self.plotter.set_background("white")
+        self.plotter.add_axes()
+
+        for tile, (x, y, z) in coords.items():
+            if tile.original_seed:
+                color = "black"
+            elif tile.pseudo_seed:
+                color = "darkgray"
+            elif tile.terminal:
+                color = "red"
+            else:
+                color = "lightblue"
+
+            cube = pv.Cube(
+                center=(x + 0.5, y + 0.5, z + 0.5),
+                x_length=1,
+                y_length=1,
+                z_length=1,
+            )
+
+            self.plotter.add_mesh(
+                cube,
+                color=color,
+                show_edges=True,
+                opacity=1.0,
+                pickable=False,
+            )
+
+        self.plotter.camera_position = [
+            (0, -25, 20),  # camera position (south of model)
+            (0, 0, 5),     # focal point
+            (0, 0, 1),     # up direction
+        ]
+        self.plotter.reset_camera()
+        self.plotter.render()
+
+        self.layer_label.setText(
+            f"Simulation complete — displayed {len(coords)} tiles"
+        )
+
 
     def run_simulation(self):
         self.stages = self.stage_combo.currentData()
@@ -835,9 +921,8 @@ class GeneratorBuilderWindow(QMainWindow):
             list(self.origin_tile),
         )
 
-        # Hook your 3D simulation/result viewer here.
-        # Example:
-        # result = run_simulation_clean(seed_tile, self.stages)
+        seed_tile, original_seed_tile = run_simulation(seed_tile, self.stages)
+        self.display_simulation_result(seed_tile)
 
         self.layer_label.setText(
             f"Running simulation with origin {self.origin_tile}, stages={self.stages}"

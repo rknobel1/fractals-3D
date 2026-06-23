@@ -83,6 +83,78 @@ class Tile():
         # If first tile copied
         self.first_tile = False
 
+def debug_print(t):
+    print("Previous: ", t.previous)
+    print("Next: ", t.next)
+
+    # What direction to copy
+    print("Copy direction: ", t.copy_direction)
+
+    # Caps
+    print("Caps: ", t.caps)
+
+    # Local tile information (and neighbors)
+    print("Status: ", t.status)
+    print("Tile to N: ", t.tile_to_N)
+    print("Tile to E: ", t.tile_to_E)
+    print("Tile to W: ", t.tile_to_W)
+    print("Tile to S: ", t.tile_to_S)
+    print("Tile to U: ", t.tile_to_U)
+    print("Tile to D: ", t.tile_to_D)
+
+    # If tile becomes new key tile or not
+    print("Becomes Key Tile N: ", t.new_kt_N)
+    print("Becomes Key Tile E: ", t.new_kt_E)
+    print("Becomes Key Tile W: ", t.new_kt_W)
+    print("Becomes Key Tile S: ", t.new_kt_S)
+    print("Becomes Key Tile U: ", t.new_kt_U)
+    print("Becomes Key Tile D: ", t.new_kt_D)
+
+    # Breadcrumb trail
+    print("N: ", t.N)
+    print("E: ", t.E)
+    print("W: ", t.W)
+    print("S: ", t.S)
+    print("U: ", t.U)
+    print("D: ", t.D)
+
+    # Holds information from breadcrumb trail (what the state was before)
+    print("Temp: ", t.temp)
+
+    # What is being transferred
+    print("Transfer: ", t.transfer)
+
+    # If tile is a seed
+    print("Original Seed: ", t.original_seed)
+    print("Pseudo Seed: ", t.pseudo_seed)
+
+    # If tile is on edge of sub-assembly
+    print("Wall: ", t.wall)
+
+    # Direction to key tile
+    print("Direction to KT N: ", t.key_tile_N)
+    print("Direction to KT E: ", t.key_tile_E)
+    print("Direction to KT W: ", t.key_tile_W)
+    print("Direction to KT S: ", t.key_tile_S)
+    print("Direction to KT U: ", t.key_tile_U)
+    print("Direction to KT D: ", t.key_tile_D)
+
+    # Has assembly been copied for tile
+    print("Copied: ", t.copied)
+
+    # Is tile terminal
+    print("Terminal: ", t.terminal)
+
+    # For seeds, number of times subassembly has been copied
+    print("Number of Times Copied: ", t.num_times_copied)
+
+    # The new previous and next for tile
+    print("New Previous: ", t.new_p)
+    print("New Next: ", t.new_n)
+
+    # If first tile copied
+    print("First Tile: ", t.first_tile)
+
 # Functions -----------------------------------
 # Returns len(next)
 def num_next(tile):
@@ -100,7 +172,7 @@ def opp(d):
     if d == "S": 
         return "N"
     if d == "U": 
-        return "U"
+        return "D"
     if d == "D":
         return "U"
     
@@ -3379,7 +3451,7 @@ def copy_tile(tile, d, ps):
                         if tile_to_place.terminal: 
                             tile.caps.append('N')
                             
-                        if tile.previous == None: tile.N = 'M'
+                        if tile.previous == None: tile.D = 'M'
                         elif tile.previous[0] == 'N': tile.N = 'M' 
                         elif tile.previous[0] == 'E': tile.E = 'M'
                         elif tile.previous[0] == 'W': tile.W = 'M'
@@ -3427,7 +3499,7 @@ def copy_tile(tile, d, ps):
                         if tile_to_place.terminal: 
                             tile.caps.append('E')
                             
-                        if tile.previous == None: tile.N = 'M'
+                        if tile.previous == None: tile.D = 'M'
                         elif tile.previous[0] == 'N': tile.N = 'M' 
                         elif tile.previous[0] == 'E': tile.E = 'M'
                         elif tile.previous[0] == 'W': tile.W = 'M'
@@ -3474,7 +3546,7 @@ def copy_tile(tile, d, ps):
                         if tile_to_place.terminal: 
                             tile.caps.append('W')
                             
-                        if tile.previous == None: tile.N = 'M'
+                        if tile.previous == None: tile.D = 'M'
                         elif tile.previous[0] == 'N': tile.N = 'M' 
                         elif tile.previous[0] == 'E': tile.E = 'M'
                         elif tile.previous[0] == 'W': tile.W = 'M'
@@ -3521,7 +3593,7 @@ def copy_tile(tile, d, ps):
                         if tile_to_place.terminal: 
                             tile.caps.append('S')
                             
-                        if tile.previous == None: tile.N = 'M'
+                        if tile.previous == None: tile.D = 'M'
                         elif tile.previous[0] == 'N': tile.N = 'M' 
                         elif tile.previous[0] == 'E': tile.E = 'M'
                         elif tile.previous[0] == 'W': tile.W = 'M'
@@ -3568,7 +3640,7 @@ def copy_tile(tile, d, ps):
                         if tile_to_place.terminal: 
                             tile.caps.append('U')
                             
-                        if tile.previous == None: tile.N = 'M'
+                        if tile.previous == None: tile.D = 'M'
                         elif tile.previous[0] == 'N': tile.N = 'M' 
                         elif tile.previous[0] == 'E': tile.E = 'M'
                         elif tile.previous[0] == 'W': tile.W = 'M'
@@ -3615,7 +3687,7 @@ def copy_tile(tile, d, ps):
                         if tile_to_place.terminal: 
                             tile.caps.append('D')
                             
-                        if tile.previous == None: tile.N = 'M'
+                        if tile.previous == None: tile.D = 'M'
                         elif tile.previous[0] == 'N': tile.N = 'M' 
                         elif tile.previous[0] == 'E': tile.E = 'M'
                         elif tile.previous[0] == 'W': tile.W = 'M'
@@ -4037,7 +4109,7 @@ def copy_tile(tile, d, ps):
                         if tile_to_place.terminal: 
                             tile.caps.append('N')
                             
-                        if tile.previous == None: tile.N = 'M'
+                        if tile.previous == None: tile.U = 'M'
                         elif tile.previous[0] == 'N': tile.N = 'M' 
                         elif tile.previous[0] == 'E': tile.E = 'M'
                         elif tile.previous[0] == 'W': tile.W = 'M'
@@ -4085,7 +4157,7 @@ def copy_tile(tile, d, ps):
                         if tile_to_place.terminal: 
                             tile.caps.append('E')
                             
-                        if tile.previous == None: tile.N = 'M'
+                        if tile.previous == None: tile.U = 'M'
                         elif tile.previous[0] == 'N': tile.N = 'M' 
                         elif tile.previous[0] == 'E': tile.E = 'M'
                         elif tile.previous[0] == 'W': tile.W = 'M'
@@ -4132,7 +4204,7 @@ def copy_tile(tile, d, ps):
                         if tile_to_place.terminal: 
                             tile.caps.append('W')
                             
-                        if tile.previous == None: tile.N = 'M'
+                        if tile.previous == None: tile.U = 'M'
                         elif tile.previous[0] == 'N': tile.N = 'M' 
                         elif tile.previous[0] == 'E': tile.E = 'M'
                         elif tile.previous[0] == 'W': tile.W = 'M'
@@ -4179,7 +4251,7 @@ def copy_tile(tile, d, ps):
                         if tile_to_place.terminal: 
                             tile.caps.append('S')
                             
-                        if tile.previous == None: tile.N = 'M'
+                        if tile.previous == None: tile.U = 'M'
                         elif tile.previous[0] == 'N': tile.N = 'M' 
                         elif tile.previous[0] == 'E': tile.E = 'M'
                         elif tile.previous[0] == 'W': tile.W = 'M'
@@ -4226,7 +4298,7 @@ def copy_tile(tile, d, ps):
                         if tile_to_place.terminal: 
                             tile.caps.append('U')
                             
-                        if tile.previous == None: tile.N = 'M'
+                        if tile.previous == None: tile.U = 'M'
                         elif tile.previous[0] == 'N': tile.N = 'M' 
                         elif tile.previous[0] == 'E': tile.E = 'M'
                         elif tile.previous[0] == 'W': tile.W = 'M'
@@ -4273,7 +4345,7 @@ def copy_tile(tile, d, ps):
                         if tile_to_place.terminal: 
                             tile.caps.append('D')
                             
-                        if tile.previous == None: tile.N = 'M'
+                        if tile.previous == None: tile.U = 'M'
                         elif tile.previous[0] == 'N': tile.N = 'M' 
                         elif tile.previous[0] == 'E': tile.E = 'M'
                         elif tile.previous[0] == 'W': tile.W = 'M'
@@ -4862,11 +4934,11 @@ def copy_assembly(tile, d):
 def run_simulation(seed_tile, stage, snapshot_cb=None):
     original_seed_tile = copy.deepcopy(seed_tile)
 
-    def emit_snapshot(label):
-        if snapshot_cb is not None:
-            snapshot_cb(seed_tile, label)
+    # def emit_snapshot(label):
+    #     if snapshot_cb is not None:
+    #         snapshot_cb(seed_tile, label)
 
-    emit_snapshot("Initial seed")
+    # emit_snapshot("Initial seed")
 
     current_stage = 1
     while current_stage < stage:
