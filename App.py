@@ -50,6 +50,12 @@ class GeneratorBuilderWindow(QMainWindow):
         self.layer_label = QLabel(f"Current Layer: Z = {self.current_layer}")
         sidebar_layout.addWidget(self.layer_label)
 
+        # Back button
+        self.back_btn = QPushButton("Back")
+        self.back_btn.clicked.connect(self.go_back)
+        self.back_btn.setEnabled(False)
+        sidebar_layout.addWidget(self.back_btn) 
+
         # Previous layer button with shortcut
         self.prev_btn = QPushButton("Previous Layer")
         self.prev_btn.clicked.connect(self.previous_layer)
@@ -137,6 +143,7 @@ class GeneratorBuilderWindow(QMainWindow):
         self.setCentralWidget(main_widget)
 
         self.update_layer_buttons()
+        self.update_back_button()
         self.setup_scene()
 
     def set_origin_tile(self, tile):
@@ -208,6 +215,9 @@ class GeneratorBuilderWindow(QMainWindow):
 
     def update_done_button(self):
         self.done_btn.setEnabled(len(self.generator_tiles) > 0)
+
+    def update_back_button(self):
+        self.back_btn.setEnabled(self.mode in ("select_origin", "select_stages"))
 
     def draw_active_layer_grid(self):
         half = self.generator_size // 2
@@ -458,6 +468,41 @@ class GeneratorBuilderWindow(QMainWindow):
         ]
         self.plotter.reset_camera()
 
+    def go_back(self):
+        if self.mode == "select_stages":
+            self.mode = "select_origin"
+
+            self.stage_label.hide()
+            self.stage_combo.hide()
+            self.run_btn.hide()
+
+            self.done_btn.show()
+            self.done_btn.setText("Confirm Origin")
+            self.done_btn.setEnabled(self.origin_tile is not None)
+
+            self.layer_label.setText(
+                f"Selected origin: {self.origin_tile} — press Done to confirm"
+                if self.origin_tile is not None
+                else f"Select origin cube — Layer Z = {self.current_layer}"
+            )
+
+            self.redraw_scene()
+
+        elif self.mode == "select_origin":
+            self.mode = "build"
+            self.origin_tile = None
+
+            self.done_btn.show()
+            self.done_btn.setText("Done")
+            self.update_done_button()
+
+            self.layer_label.setText(f"Current Layer: Z = {self.current_layer}")
+
+            self.redraw_scene()
+
+        self.update_back_button()
+        self.update_layer_buttons()
+
     def reset_all(self):
         self.current_layer = 0
         self.generator_tiles.clear()
@@ -465,6 +510,7 @@ class GeneratorBuilderWindow(QMainWindow):
         self.grid_actors.clear()
 
         self.mode = "build"
+        self.update_back_button()
         self.origin_tile = None
 
         self.stage_label.hide()
@@ -489,6 +535,7 @@ class GeneratorBuilderWindow(QMainWindow):
                 return
 
             self.mode = "select_origin"
+            self.update_back_button()
             self.done_btn.setText("Confirm Origin")
             self.done_btn.setEnabled(False)
             self.layer_label.setText(
@@ -848,6 +895,7 @@ class GeneratorBuilderWindow(QMainWindow):
     def show_stage_selection(self):
         self.mode = "select_stages"
 
+        self.update_back_button()
         self.done_btn.hide()
         self.stage_label.show()
         self.stage_combo.show()
