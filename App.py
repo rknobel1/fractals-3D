@@ -792,6 +792,10 @@ class GeneratorBuilderWindow(QMainWindow):
                         adj_tile.key_tile_D = [opp(n)]
                         stack.append(adj_tile)
 
+        for k, t in new_tiles.items():
+            debug_print(t)
+            print()
+
         return seed_tile
     
     def show_stage_selection(self):

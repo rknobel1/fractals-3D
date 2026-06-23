@@ -4796,13 +4796,13 @@ def copy_assembly(tile, d):
                     
                     tile = adjacent_tile
 
-                elif tile.tile_to_D != None and directions_missing(tile.tile_to_D) > 0 and ((tile.next != None and 'U' in tile.next) or (tile.previous != None and 'U' in tile.previous)):
+                elif tile.tile_to_D != None and directions_missing(tile.tile_to_D) > 0 and ((tile.next != None and 'D' in tile.next) or (tile.previous != None and 'D' in tile.previous)):
                     adjacent_tile = tile.tile_to_D
                     adjacent_tile.U = 'Y'
                     
                     tile = adjacent_tile
 
-                elif tile.tile_to_U != None and directions_missing(tile.tile_to_U) > 0 and ((tile.next != None and 'D' in tile.next) or (tile.previous != None and 'D' in tile.previous)):
+                elif tile.tile_to_U != None and directions_missing(tile.tile_to_U) > 0 and ((tile.next != None and 'U' in tile.next) or (tile.previous != None and 'U' in tile.previous)):
                     adjacent_tile = tile.tile_to_U
                     adjacent_tile.D = 'Y'
                     
