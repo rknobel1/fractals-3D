@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QComboBox,
 )
+from PySide6.QtGui import QShortcut, QKeySequence
 from collections import deque
 from Utils import *
 
@@ -47,26 +48,41 @@ class GeneratorBuilderWindow(QMainWindow):
         self.layer_label = QLabel(f"Current Layer: Z = {self.current_layer}")
         sidebar_layout.addWidget(self.layer_label)
 
+        # Previous layer button with shortcut
         self.prev_btn = QPushButton("Previous Layer")
         self.prev_btn.clicked.connect(self.previous_layer)
         sidebar_layout.addWidget(self.prev_btn)
 
+        self.prev_shortcut = QShortcut(QKeySequence("B"), self)
+        self.prev_shortcut.activated.connect(self.previous_layer)
+
+        # Next layer button with shortcut
         self.next_btn = QPushButton("Next Layer")
         self.next_btn.clicked.connect(self.next_layer)
         sidebar_layout.addWidget(self.next_btn)
 
+        self.next_shortcut = QShortcut(QKeySequence("N"), self)
+        self.next_shortcut.activated.connect(self.next_layer)
+
+        # Reset camera view to default
         reset_btn = QPushButton("Reset Camera")
         reset_btn.clicked.connect(self.reset_view)
         sidebar_layout.addWidget(reset_btn)
 
+        # Reset all tiles to default
         reset_all_btn = QPushButton("Reset All")
         reset_all_btn.clicked.connect(self.reset_all)
         sidebar_layout.addWidget(reset_all_btn)
 
+        # Done button with shortcut
         self.done_btn = QPushButton("Done")
         self.done_btn.clicked.connect(self.enter_origin_selection_mode)
         sidebar_layout.addWidget(self.done_btn)
 
+        self.done_shortcut = QShortcut(QKeySequence("Enter"), self)
+        self.done_shortcut.activated.connect(self.enter_origin_selection_mode)
+
+        # Selecting simulation stage
         self.stage_label = QLabel("Simulation Stage")
         sidebar_layout.addWidget(self.stage_label)
         self.stage_label.hide()
