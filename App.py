@@ -317,6 +317,11 @@ class GeneratorBuilderWindow(QMainWindow):
         if point is None:
             return
 
+        # Only allow tile placement in build mode,
+        # but still allow selecting an existing origin tile in select_origin mode.
+        if self.mode not in ("build", "select_origin"):
+            return
+
         half = self.generator_size / 2
 
         x = math.floor(point[0] + half)
