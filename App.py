@@ -12,7 +12,9 @@ from PySide6.QtWidgets import (
     QPushButton,
     QLabel,
     QComboBox,
+    QMessageBox
 )
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QShortcut, QKeySequence
 from collections import deque
 from Utils import *
@@ -101,6 +103,30 @@ class GeneratorBuilderWindow(QMainWindow):
         self.done_btn.setEnabled(False)
 
         sidebar_layout.addStretch()
+
+        self.shortcuts_label = QLabel("""
+            <b>Shortcuts</b><br>
+            N - Next Layer<br>
+            B - Previous Layer<br>
+            Enter - Confirm<br><br>
+            LMB - Place Tile<br>
+            RMB - Remove Tile
+            """)
+        
+        self.shortcuts_label.setStyleSheet("""
+        QLabel {
+            color: #666;
+            font-size: 11px;
+            padding: 6px;
+            border-top: 1px solid #ccc;
+        }
+    """)
+
+        self.shortcuts_label.setAlignment(
+            Qt.AlignLeft | Qt.AlignBottom
+        )
+
+        sidebar_layout.addWidget(self.shortcuts_label)
 
         # Selecting origin cube
         self.mode = "build"
