@@ -22,15 +22,16 @@ pip install -r requirements.txt
 python App.py
 ```
 
-Paint a fractal seed using left click to place tiles and right click to delete tiles.
-![image](https://github.com/user-attachments/assets/d33933e1-72f1-4a98-b2c5-658a391fe7f3)
+Paint a fractal seed using left click to place tiles and right click to delete tiles. Use the previous/next layer buttons to toggle between layers.
+![image](https://github.com/user-attachments/assets/e9efa553-85aa-445a-8aa8-9148bccc88eb)
+
 
 Press done to continue to the next step.
-Left click a tile to set it as the origin tile.
-![image](https://github.com/user-attachments/assets/ab98e83d-424c-467d-be26-be7a627739de)
+Left click a tile to set it as the origin tile. Use the previous/next layer buttons to toggle between layers.
+![image](https://github.com/user-attachments/assets/8410dd2f-5853-4b4a-9948-366ba3f52d6a)
 
 Select the number of stages to emulate.
-![image](https://github.com/user-attachments/assets/fd7a687a-d3cf-451b-845c-0f6ea890d61a)
+![image](https://github.com/user-attachments/assets/763dc5c7-95fd-46dc-85c3-20a8a3ab794f)
 
-Click run to display the result
-![image](https://github.com/user-attachments/assets/6bc81afd-f1f3-4872-aeb1-a38959d90c36)
+Click run to display the result. Click and drag in the white space to pan the camera.
+![image](https://github.com/user-attachments/assets/ea1f16e8-f6b0-4bf0-bacc-3444274487b9).
