@@ -18,7 +18,7 @@ from PySide6.QtGui import QShortcut, QKeySequence
 from collections import deque
 from Utils import *
 
-MAX_SIM_SIZE = 30_000
+MAX_SIM_SIZE = 100_000
 
 class GeneratorBuilderWindow(QMainWindow):
     def __init__(self):
@@ -951,6 +951,60 @@ class GeneratorBuilderWindow(QMainWindow):
 
         return coords
     
+    @staticmethod
+    def build_voxel_surface_mesh(coords_by_tile):
+        positions = list(coords_by_tile.values())
+        pos_set = set(positions)
+
+        points = []
+        faces = []
+        colors = []
+
+        face_defs = [
+            ((1, 0, 0), [(1,0,0), (1,1,0), (1,1,1), (1,0,1)]),
+            ((-1, 0, 0), [(0,0,0), (0,0,1), (0,1,1), (0,1,0)]),
+            ((0, 1, 0), [(0,1,0), (0,1,1), (1,1,1), (1,1,0)]),
+            ((0, -1, 0), [(0,0,0), (1,0,0), (1,0,1), (0,0,1)]),
+            ((0, 0, 1), [(0,0,1), (1,0,1), (1,1,1), (0,1,1)]),
+            ((0, 0, -1), [(0,0,0), (0,1,0), (1,1,0), (1,0,0)]),
+        ]
+
+        color_lookup = {
+            "original": [0, 0, 0],
+            "pseudo": [80, 80, 80],
+            "terminal": [255, 0, 0],
+            "normal": [173, 216, 230],
+        }
+
+        for tile, (x, y, z) in coords_by_tile.items():
+            if tile.original_seed:
+                c = color_lookup["original"]
+            elif tile.pseudo_seed:
+                c = color_lookup["pseudo"]
+            elif tile.terminal:
+                c = color_lookup["terminal"]
+            else:
+                c = color_lookup["normal"]
+
+            for (dx, dy, dz), corners in face_defs:
+                if (x + dx, y + dy, z + dz) in pos_set:
+                    continue
+
+                start = len(points)
+                for ox, oy, oz in corners:
+                    points.append((x + ox, y + oy, z + oz))
+
+                faces.extend([4, start, start + 1, start + 2, start + 3])
+                colors.append(c)
+
+        mesh = pv.PolyData(
+            np.asarray(points, dtype=np.float32),
+            np.asarray(faces, dtype=np.int64)
+        )
+        mesh.cell_data["colors"] = np.array(colors, dtype=np.uint8)
+        
+        return mesh
+
     def display_simulation_result(self, seed_tile):
         coords = GeneratorBuilderWindow.extract_3d_layout(seed_tile)
 
@@ -958,36 +1012,22 @@ class GeneratorBuilderWindow(QMainWindow):
         self.plotter.set_background("white")
         self.plotter.add_axes()
 
-        for tile, (x, y, z) in coords.items():
-            if tile.original_seed:
-                color = "black"
-            elif tile.pseudo_seed:
-                color = "darkgray"
-            elif tile.terminal:
-                color = "red"
-            else:
-                color = "lightblue"
+        mesh = self.build_voxel_surface_mesh(coords)
 
-            cube = pv.Cube(
-                center=(x + 0.5, y + 0.5, z + 0.5),
-                x_length=1,
-                y_length=1,
-                z_length=1,
-            )
-
-            self.plotter.add_mesh(
-                cube,
-                color=color,
-                show_edges=True,
-                opacity=1.0,
-                pickable=False,
-            )
+        self.plotter.add_mesh(
+            mesh,
+            scalars="colors",
+            rgb=True,
+            show_edges=True,
+            pickable=False,
+        )
 
         self.plotter.camera_position = [
-            (0, -25, 20),  
-            (0, 0, 5),     
-            (0, 0, 1),     
+            (0, -25, 20),
+            (0, 0, 5),
+            (0, 0, 1),
         ]
+
         self.plotter.reset_camera()
         self.plotter.render()
 
