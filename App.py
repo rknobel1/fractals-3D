@@ -13,12 +13,31 @@ from PySide6.QtWidgets import (
     QLabel,
     QComboBox,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread, QObject, Signal
 from PySide6.QtGui import QShortcut, QKeySequence
 from collections import deque
 from Utils import *
 
-MAX_SIM_SIZE = 100_000
+MAX_SIM_SIZE = 1_000_000
+
+class SimulationWorker(QObject):
+    finished = Signal(object)
+    error = Signal(str)
+
+    def __init__(self, seed_tile, stages):
+        super().__init__()
+        self.seed_tile = seed_tile
+        self.stages = stages
+
+    def run(self):
+        try:
+            seed_tile, _original_seed_tile = run_simulation(
+                self.seed_tile,
+                self.stages
+            )
+            self.finished.emit(seed_tile)
+        except Exception as e:
+            self.error.emit(str(e))
 
 class GeneratorBuilderWindow(QMainWindow):
     def __init__(self):
@@ -1035,12 +1054,16 @@ class GeneratorBuilderWindow(QMainWindow):
             f"Simulation complete — displayed {len(coords)} tiles"
         )
 
-
     def run_simulation(self):
         self.stages = self.stage_combo.currentData()
 
         if self.origin_tile is None:
             return
+
+        self.run_btn.setEnabled(False)
+        self.run_btn.setText("Running...")
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        QApplication.processEvents()
 
         seed_tile = GeneratorBuilderWindow.create_seed(
             {
@@ -1050,12 +1073,39 @@ class GeneratorBuilderWindow(QMainWindow):
             list(self.origin_tile),
         )
 
-        seed_tile, original_seed_tile = run_simulation(seed_tile, self.stages)
+        self.sim_thread = QThread()
+        self.sim_worker = SimulationWorker(seed_tile, self.stages)
+
+        self.sim_worker.moveToThread(self.sim_thread)
+
+        self.sim_thread.started.connect(self.sim_worker.run)
+        self.sim_worker.finished.connect(self.on_simulation_finished)
+        self.sim_worker.error.connect(self.on_simulation_error)
+
+        self.sim_worker.finished.connect(self.sim_thread.quit)
+        self.sim_worker.error.connect(self.sim_thread.quit)
+
+        self.sim_worker.finished.connect(self.sim_worker.deleteLater)
+        self.sim_worker.error.connect(self.sim_worker.deleteLater)
+        self.sim_thread.finished.connect(self.sim_thread.deleteLater)
+
+        self.sim_thread.start()
+
+    def on_simulation_finished(self, seed_tile):
+        QApplication.restoreOverrideCursor()
+
         self.display_simulation_result(seed_tile)
 
-        self.layer_label.setText(
-            f"Running simulation with origin {self.origin_tile}, stages={self.stages}"
-        )
+        self.run_btn.setEnabled(True)
+        self.run_btn.setText("Run")
+
+    def on_simulation_error(self, error_message):
+        QApplication.restoreOverrideCursor()
+
+        self.run_btn.setEnabled(True)
+        self.run_btn.setText("Run")
+
+        self.layer_label.setText(f"Simulation failed: {error_message}")
 
 
 if __name__ == "__main__":
