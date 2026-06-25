@@ -120,11 +120,11 @@ class GeneratorBuilderWindow(QMainWindow):
 
         # Done button with shortcut
         self.done_btn = QPushButton("Done")
-        self.done_btn.clicked.connect(self.enter_origin_selection_mode)
+        self.done_btn.clicked.connect(self.change_current_mode)
         sidebar_layout.addWidget(self.done_btn)
 
         self.done_shortcut = QShortcut(QKeySequence("Enter"), self)
-        self.done_shortcut.activated.connect(self.enter_origin_selection_mode)
+        self.done_shortcut.activated.connect(self.change_current_mode)
 
         # Selecting simulation stage
         self.stage_label = QLabel("Simulation Stage")
@@ -330,7 +330,7 @@ class GeneratorBuilderWindow(QMainWindow):
     def has_higher_layer(self):
         return any(tile_z > self.current_layer for _x, _y, tile_z in self.generator_tiles)
 
-    def enter_origin_selection_mode(self):
+    def change_current_mode(self):
         if self.mode == "build":
             valid, error = self.check_valid_seed_3d()
 
