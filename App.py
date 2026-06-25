@@ -342,6 +342,9 @@ class GeneratorBuilderWindow(QMainWindow):
             self.update_back_button()
             self.done_btn.setText("Confirm Origin")
             self.done_btn.setEnabled(False)
+            self.current_layer = 0
+            self.update_layer_buttons()
+            self.redraw_scene()
             self.layer_label.setText(
                 f"Select origin cube — Layer Z = {self.current_layer}"
             )
