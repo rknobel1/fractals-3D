@@ -615,6 +615,7 @@ class GeneratorBuilderWindow(QMainWindow):
 
         self.update_layer_buttons()
         self.redraw_scene()
+        self.reset_view()
 
     def cancel_simulation(self):
         if hasattr(self, "sim_worker"):
