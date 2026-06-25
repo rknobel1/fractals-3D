@@ -109,14 +109,14 @@ class GeneratorBuilderWindow(QMainWindow):
         self.next_shortcut.activated.connect(self.next_layer)
 
         # Reset camera view to default
-        reset_btn = QPushButton("Reset Camera")
-        reset_btn.clicked.connect(self.reset_view)
-        sidebar_layout.addWidget(reset_btn)
+        self.reset_btn = QPushButton("Reset Camera")
+        self.reset_btn.clicked.connect(self.reset_view)
+        sidebar_layout.addWidget(self.reset_btn)
 
         # Reset all tiles to default
-        reset_all_btn = QPushButton("Reset All")
-        reset_all_btn.clicked.connect(self.reset_all)
-        sidebar_layout.addWidget(reset_all_btn)
+        self.reset_all_btn = QPushButton("Reset All")
+        self.reset_all_btn.clicked.connect(self.reset_all)
+        sidebar_layout.addWidget(self.reset_all_btn)
 
         # Done button with shortcut
         self.done_btn = QPushButton("Done")
@@ -298,6 +298,32 @@ class GeneratorBuilderWindow(QMainWindow):
         self.done_btn.setText("Done")
         self.done_btn.setEnabled(True)
 
+    def set_running_state(self, running: bool):
+        self.back_btn.setEnabled(not running)
+        self.prev_btn.setEnabled(not running)
+        self.next_btn.setEnabled(not running)
+        self.done_btn.setEnabled(not running)
+        self.reset_btn.setEnabled(not running)
+        self.reset_all_btn.setEnabled(not running)
+        self.stage_combo.setEnabled(not running)
+        self.run_btn.setEnabled(not running)
+
+        self.cancel_btn.setVisible(running)
+        self.cancel_btn.setEnabled(running)
+
+        if running:
+            self.run_btn.setText("Running...")
+        else:
+            self.run_btn.setText("Run")
+            self.cancel_btn.setText("Cancel")
+            self.update_back_button()
+            self.update_layer_buttons()
+
+            if self.mode == "build":
+                self.update_done_button()
+            elif self.mode == "select_origin":
+                self.done_btn.setEnabled(self.origin_tile is not None)
+
     def layer_has_tiles(self, z):
         return any(tile_z == z for _x, _y, tile_z in self.generator_tiles)
     
@@ -346,7 +372,7 @@ class GeneratorBuilderWindow(QMainWindow):
         self.done_btn.setEnabled(len(self.generator_tiles) > 0)
 
     def update_back_button(self):
-        self.back_btn.setEnabled(self.mode in ("select_origin", "select_stages"))
+        self.back_btn.setEnabled(self.mode in ("select_origin", "select_stages", "display_result"))
 
     def enable_cube_placement(self):
         self.plotter.iren.add_observer("LeftButtonPressEvent", self.on_left_click)
@@ -555,6 +581,10 @@ class GeneratorBuilderWindow(QMainWindow):
 
             self.layer_label.setText(f"Current Layer: Z = {self.current_layer}")
 
+            self.redraw_scene()
+
+        elif self.mode == "display_result":
+            self.restore_stage_selection_after_simulation()
             self.redraw_scene()
 
         self.update_back_button()
@@ -1083,25 +1113,15 @@ class GeneratorBuilderWindow(QMainWindow):
             (0, 0, 1),
         ]
 
+        self.prev_btn.setEnabled(False)
+        self.next_btn.setEnabled(False)
+
         self.plotter.reset_camera()
         self.plotter.render()
 
         self.layer_label.setText(
             f"Simulation complete — displayed {len(coords)} tiles"
         )
-
-    def set_simulation_controls_running(self, running):
-        self.run_btn.setEnabled(not running)
-        self.run_btn.setText("Running..." if running else "Run")
-
-        if running:
-            self.cancel_btn.setText("Cancel")
-            self.cancel_btn.setEnabled(True)
-            self.cancel_btn.show()
-        else:
-            self.cancel_btn.setText("Cancel")
-            self.cancel_btn.setEnabled(False)
-            self.cancel_btn.hide()
 
     def restore_stage_selection_after_simulation(self, message=None):
         self.mode = "select_stages"
@@ -1110,7 +1130,7 @@ class GeneratorBuilderWindow(QMainWindow):
         self.run_btn.show()
         self.done_btn.hide()
 
-        self.set_simulation_controls_running(False)
+        self.set_running_state(False)
         self.update_back_button()
 
         if message is None:
@@ -1124,7 +1144,7 @@ class GeneratorBuilderWindow(QMainWindow):
         if self.origin_tile is None:
             return
 
-        self.set_simulation_controls_running(True)
+        self.set_running_state(True)
         QApplication.setOverrideCursor(Qt.WaitCursor)
         QApplication.processEvents()
 
@@ -1162,8 +1182,10 @@ class GeneratorBuilderWindow(QMainWindow):
     def on_simulation_finished(self, seed_tile):
         QApplication.restoreOverrideCursor()
 
+        self.mode = "display_result"
+        self.update_back_button()
+        self.set_running_state(False)
         self.display_simulation_result(seed_tile)
-        self.set_simulation_controls_running(False)
 
     def on_simulation_error(self, error_message):
         QApplication.restoreOverrideCursor()
@@ -1176,7 +1198,7 @@ class GeneratorBuilderWindow(QMainWindow):
         QApplication.restoreOverrideCursor()
 
         self.restore_stage_selection_after_simulation(
-            f"Origin selected: {self.origin_tile}. Choose simulation depth."
+            f"Simulation Cancelled."
         )
 
 
