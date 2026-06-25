@@ -23,21 +23,39 @@ MAX_SIM_SIZE = 1_000_000
 class SimulationWorker(QObject):
     finished = Signal(object)
     error = Signal(str)
+    cancelled_signal = Signal()
 
     def __init__(self, seed_tile, stages):
         super().__init__()
         self.seed_tile = seed_tile
         self.stages = stages
+        self.cancelled = False
+
+    def cancel(self):
+        self.cancelled = True
 
     def run(self):
         try:
-            seed_tile, _original_seed_tile = run_simulation(
+            seed_tile, _ = run_simulation(
                 self.seed_tile,
-                self.stages
+                self.stages,
+                cancel_callback=lambda: self.cancelled
             )
-            self.finished.emit(seed_tile)
+
+            if self.cancelled:
+                self.cancelled_signal.emit()
+            else:
+                self.finished.emit(seed_tile)
+
+        except SimulationCancelled:
+            self.cancelled_signal.emit()
+
         except Exception as e:
-            self.error.emit(str(e))
+            if self.cancelled:
+                self.cancelled_signal.emit()
+            else:
+                self.error.emit(str(e))
+
 
 class GeneratorBuilderWindow(QMainWindow):
     def __init__(self):
@@ -122,6 +140,13 @@ class GeneratorBuilderWindow(QMainWindow):
         self.run_btn.clicked.connect(self.run_simulation)
         sidebar_layout.addWidget(self.run_btn)
         self.run_btn.hide()
+
+        # Cancel button
+        self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn.clicked.connect(self.cancel_simulation)
+        self.cancel_btn.hide()
+        self.cancel_btn.setEnabled(False)
+        sidebar_layout.addWidget(self.cancel_btn)
 
         self.stages = 1
 
@@ -548,6 +573,9 @@ class GeneratorBuilderWindow(QMainWindow):
         self.stage_label.hide()
         self.stage_combo.hide()
         self.run_btn.hide()
+        self.cancel_btn.hide()
+        self.cancel_btn.setEnabled(False)
+        self.cancel_btn.setText("Cancel")
         self.done_btn.show()
         self.stages = 1
 
@@ -557,7 +585,15 @@ class GeneratorBuilderWindow(QMainWindow):
 
         self.update_layer_buttons()
         self.redraw_scene()
-        
+
+    def cancel_simulation(self):
+        if hasattr(self, "sim_worker"):
+            self.sim_worker.cancel()
+
+        self.cancel_btn.setEnabled(False)
+        self.cancel_btn.setText("Cancelling...")
+        self.layer_label.setText("Cancelling...")
+
     # LOGIC
     def check_valid_seed_3d(self):
         if len(self.generator_tiles) < 1:
@@ -1054,14 +1090,41 @@ class GeneratorBuilderWindow(QMainWindow):
             f"Simulation complete — displayed {len(coords)} tiles"
         )
 
+    def set_simulation_controls_running(self, running):
+        self.run_btn.setEnabled(not running)
+        self.run_btn.setText("Running..." if running else "Run")
+
+        if running:
+            self.cancel_btn.setText("Cancel")
+            self.cancel_btn.setEnabled(True)
+            self.cancel_btn.show()
+        else:
+            self.cancel_btn.setText("Cancel")
+            self.cancel_btn.setEnabled(False)
+            self.cancel_btn.hide()
+
+    def restore_stage_selection_after_simulation(self, message=None):
+        self.mode = "select_stages"
+        self.stage_label.show()
+        self.stage_combo.show()
+        self.run_btn.show()
+        self.done_btn.hide()
+
+        self.set_simulation_controls_running(False)
+        self.update_back_button()
+
+        if message is None:
+            message = f"Origin selected: {self.origin_tile}. Choose simulation depth."
+
+        self.layer_label.setText(message)
+
     def run_simulation(self):
         self.stages = self.stage_combo.currentData()
 
         if self.origin_tile is None:
             return
 
-        self.run_btn.setEnabled(False)
-        self.run_btn.setText("Running...")
+        self.set_simulation_controls_running(True)
         QApplication.setOverrideCursor(Qt.WaitCursor)
         QApplication.processEvents()
 
@@ -1079,14 +1142,19 @@ class GeneratorBuilderWindow(QMainWindow):
         self.sim_worker.moveToThread(self.sim_thread)
 
         self.sim_thread.started.connect(self.sim_worker.run)
+
         self.sim_worker.finished.connect(self.on_simulation_finished)
         self.sim_worker.error.connect(self.on_simulation_error)
+        self.sim_worker.cancelled_signal.connect(self.on_simulation_cancelled)
 
         self.sim_worker.finished.connect(self.sim_thread.quit)
         self.sim_worker.error.connect(self.sim_thread.quit)
+        self.sim_worker.cancelled_signal.connect(self.sim_thread.quit)
 
         self.sim_worker.finished.connect(self.sim_worker.deleteLater)
         self.sim_worker.error.connect(self.sim_worker.deleteLater)
+        self.sim_worker.cancelled_signal.connect(self.sim_worker.deleteLater)
+
         self.sim_thread.finished.connect(self.sim_thread.deleteLater)
 
         self.sim_thread.start()
@@ -1095,17 +1163,21 @@ class GeneratorBuilderWindow(QMainWindow):
         QApplication.restoreOverrideCursor()
 
         self.display_simulation_result(seed_tile)
-
-        self.run_btn.setEnabled(True)
-        self.run_btn.setText("Run")
+        self.set_simulation_controls_running(False)
 
     def on_simulation_error(self, error_message):
         QApplication.restoreOverrideCursor()
 
-        self.run_btn.setEnabled(True)
-        self.run_btn.setText("Run")
+        self.restore_stage_selection_after_simulation(
+            f"Simulation failed: {error_message}"
+        )
 
-        self.layer_label.setText(f"Simulation failed: {error_message}")
+    def on_simulation_cancelled(self):
+        QApplication.restoreOverrideCursor()
+
+        self.restore_stage_selection_after_simulation(
+            f"Origin selected: {self.origin_tile}. Choose simulation depth."
+        )
 
 
 if __name__ == "__main__":

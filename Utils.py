@@ -1,6 +1,13 @@
 import copy
 from collections import deque
 
+class SimulationCancelled(Exception):
+    pass
+
+def _raise_if_cancelled(cancel_callback):
+    if cancel_callback is not None and cancel_callback():
+        raise SimulationCancelled()
+
 # Stores all the hard reset tiles
 hard_reset_tiles = []
 
@@ -253,7 +260,8 @@ def copy_direction_update_tiles(cur_tile, direction):
     else: cur_tile.D = None
 
 # Proprogate copy direction through subassembly
-def choose_copy_direction(tile, direction):
+def choose_copy_direction(tile, direction, cancel_callback=None):
+    _raise_if_cancelled(cancel_callback)
     stack = deque()
     stack.append(tile)
     visited_tiles = []
@@ -261,10 +269,12 @@ def choose_copy_direction(tile, direction):
     t = []
 
     while len(stack) > 0:
+        _raise_if_cancelled(cancel_callback)
         cur_tile = stack.pop()
 
         if cur_tile.next != None:
             for neighbor in cur_tile.next:
+                _raise_if_cancelled(cancel_callback)
                 if retrieve_tile(cur_tile, neighbor) not in visited_tiles and retrieve_tile(cur_tile, neighbor) != None:
                     adj_tile = retrieve_tile(cur_tile, neighbor)
                     stack.append(adj_tile)
@@ -274,6 +284,7 @@ def choose_copy_direction(tile, direction):
 
         if cur_tile.previous != None:
             for neighbor in cur_tile.previous:
+                _raise_if_cancelled(cancel_callback)
                 if retrieve_tile(cur_tile, neighbor) not in visited_tiles and retrieve_tile(cur_tile, neighbor) != None:
                     adj_tile = retrieve_tile(cur_tile, neighbor)
                     stack.append(adj_tile)
@@ -288,10 +299,12 @@ def choose_copy_direction(tile, direction):
 
     # All tiles are marked with copying direction, retrace back to original/pseudo seed
     while len(t) > 0:
+        _raise_if_cancelled(cancel_callback)
         cur_tile = t.pop()
 
         if cur_tile.next != None:
             for neighbor in cur_tile.next:
+                _raise_if_cancelled(cancel_callback)
                 if len(retrieve_tile(cur_tile, neighbor).copy_direction) > 1:
                     adj_tile = retrieve_tile(cur_tile, neighbor)
 
@@ -309,6 +322,7 @@ def choose_copy_direction(tile, direction):
 
         if cur_tile.previous != None:
             for neighbor in cur_tile.previous:
+                _raise_if_cancelled(cancel_callback)
                 if len(retrieve_tile(cur_tile, neighbor).copy_direction) > 1:
                     adj_tile = retrieve_tile(cur_tile, neighbor)
 
@@ -361,9 +375,11 @@ def reset_tile(ct):
     else: ct.terminal = False
 
 # Hard reset only using terminal tiles:
-def hard_reset():
+def hard_reset(cancel_callback=None):
+    _raise_if_cancelled(cancel_callback)
 
     while len(hard_reset_tiles) > 0:
+        _raise_if_cancelled(cancel_callback)
 
         ct = hard_reset_tiles.pop()
         update_prev_next(ct)
@@ -379,10 +395,12 @@ def hard_reset():
             update_prev_next(adj_tile)
 
             while len(t) > 0:
+                _raise_if_cancelled(cancel_callback)
                 cur = t.pop()
 
                 if cur.next != None: 
                     for neighbor in cur.next:
+                        _raise_if_cancelled(cancel_callback)
                         a = retrieve_tile(cur, neighbor)
                         update_prev_next(a)
                         if a != None and (a.copy_direction == 'r'):
@@ -394,6 +412,7 @@ def hard_reset():
 
                 if cur.previous != None: 
                     for neighbor in cur.previous:
+                        _raise_if_cancelled(cancel_callback)
                         a = retrieve_tile(cur, neighbor)
                         update_prev_next(a)
                         if a != None and (a.copy_direction == 'r'):
@@ -4682,7 +4701,8 @@ def copy_tile(tile, d, ps):
 
     return pseudo_seed 
 
-def copy_assembly(tile, d): 
+def copy_assembly(tile, d, cancel_callback=None): 
+    _raise_if_cancelled(cancel_callback)
     pseudo_seed = None
     returned_pseudo_seed = None
     tile.copied = True
@@ -4690,31 +4710,38 @@ def copy_assembly(tile, d):
     if d == "N":
         pseudo_seed = tile.tile_to_N
         while tile.key_tile_S != None:
+            _raise_if_cancelled(cancel_callback)
             tile = retrieve_tile(tile, tile.key_tile_S[0])
     if d == "E":
         pseudo_seed = tile.tile_to_E
         while tile.key_tile_W != None:
+            _raise_if_cancelled(cancel_callback)
             tile = retrieve_tile(tile, tile.key_tile_W[0])
     if d == "W":
         pseudo_seed = tile.tile_to_W
         while tile.key_tile_E != None:
+            _raise_if_cancelled(cancel_callback)
             tile = retrieve_tile(tile, tile.key_tile_E[0])
     if d == "S":
         pseudo_seed = tile.tile_to_S
         while tile.key_tile_N != None:
+            _raise_if_cancelled(cancel_callback)
             tile = retrieve_tile(tile, tile.key_tile_N[0])
     if d == "U":
         pseudo_seed = tile.tile_to_U
         while tile.key_tile_D != None:
+            _raise_if_cancelled(cancel_callback)
             tile = retrieve_tile(tile, tile.key_tile_D[0])
     if d == "D":
         pseudo_seed = tile.tile_to_D
         while tile.key_tile_U != None:
+            _raise_if_cancelled(cancel_callback)
             tile = retrieve_tile(tile, tile.key_tile_U[0])
 
     starting_tile = tile
     starting_tile.first_tile = True
     while not is_assembly_finished(starting_tile):
+        _raise_if_cancelled(cancel_callback)
         # copy tile
         is_pseudo_seed = copy_tile(tile, d, pseudo_seed)
 
@@ -4769,6 +4796,7 @@ def copy_assembly(tile, d):
                 tile = adj_tile
 
             while directions_missing(tile) == 0:
+                _raise_if_cancelled(cancel_callback)
                 
                 # Update tile and adjacent tile, then repeat
                 if tile.tile_to_S != None and directions_missing(tile.tile_to_S) > 0 and ((tile.next != None and 'S' in tile.next) or (tile.previous != None and 'S' in tile.previous)):
@@ -4850,11 +4878,13 @@ def copy_assembly(tile, d):
         t = [tile]
 
         while len(t) > 0:
+            _raise_if_cancelled(cancel_callback)
             ct = t.pop()
 
             if ct.copy_direction == '?':
                 if ct.next != None: 
                     for neighbor in ct.next:
+                        _raise_if_cancelled(cancel_callback)
                         adj_tile = retrieve_tile(ct, neighbor)
                         if adj_tile != None:
                             adj_tile.copy_direction = '?' + opp(neighbor)
@@ -4862,6 +4892,7 @@ def copy_assembly(tile, d):
 
                 if ct.previous != None: 
                     for neighbor in ct.previous:
+                        _raise_if_cancelled(cancel_callback)
                         adj_tile = retrieve_tile(ct, neighbor)
                         if adj_tile != None:
                             adj_tile.copy_direction = '?' + opp(neighbor)
@@ -4871,6 +4902,7 @@ def copy_assembly(tile, d):
                 l = list(ct.copy_direction)
                 if ct.next != None: 
                     for neighbor in ct.next:
+                        _raise_if_cancelled(cancel_callback)
                         if neighbor != l[1]: 
                             adj_tile = retrieve_tile(ct, neighbor)
                             if adj_tile != None:
@@ -4879,6 +4911,7 @@ def copy_assembly(tile, d):
 
                 if ct.previous != None: 
                     for neighbor in ct.previous:
+                        _raise_if_cancelled(cancel_callback)
                         if neighbor != l[1]: 
                             adj_tile = retrieve_tile(ct, neighbor)
                             if adj_tile != None:
@@ -4903,11 +4936,13 @@ def copy_assembly(tile, d):
         if r_tile != None:
             t = [r_tile]
             while len(t) > 0:
+                _raise_if_cancelled(cancel_callback)
                 ct = t.pop()
 
                 if ct.copy_direction == 'r?':
                     if ct.next != None: 
                         for neighbor in ct.next:
+                            _raise_if_cancelled(cancel_callback)
                             adj_tile = retrieve_tile(ct, neighbor)
                             if adj_tile != None and adj_tile.copy_direction == None:
                                 adj_tile.copy_direction = 'r?'
@@ -4915,6 +4950,7 @@ def copy_assembly(tile, d):
 
                     if ct.previous != None: 
                         for neighbor in ct.previous:
+                            _raise_if_cancelled(cancel_callback)
                             adj_tile = retrieve_tile(ct, neighbor)
                             if adj_tile != None and adj_tile.copy_direction == None:
                                 adj_tile.copy_direction = 'r?'
@@ -4931,52 +4967,42 @@ def copy_assembly(tile, d):
     return returned_pseudo_seed
 
 # Run simulation -----------------------------------------------------------------------------------
-def run_simulation(seed_tile, stage, snapshot_cb=None):
+def run_simulation(seed_tile, stage, cancel_callback=None):
+    _raise_if_cancelled(cancel_callback)
     original_seed_tile = copy.deepcopy(seed_tile)
-
-    # def emit_snapshot(label):
-    #     if snapshot_cb is not None:
-    #         snapshot_cb(seed_tile, label)
-
-    # emit_snapshot("Initial seed")
 
     current_stage = 1
     while current_stage < stage:
+        _raise_if_cancelled(cancel_callback)
 
         stack = deque()
         stack.append(seed_tile)
         while len(stack) > 0:
+            _raise_if_cancelled(cancel_callback)
             cur_tile = stack.pop()
             if cur_tile.next != None:
                 for neighbor in cur_tile.next:
+                    _raise_if_cancelled(cancel_callback)
                     if retrieve_tile(cur_tile, neighbor).copied == False:
-                        choose_copy_direction(cur_tile, neighbor)
-                        # emit_snapshot(f"Stage {current_stage}: chose copy direction {neighbor}")
+                        choose_copy_direction(cur_tile, neighbor, cancel_callback)
 
-                        new_pseudo_seed = copy_assembly(cur_tile, neighbor)
-                        # emit_snapshot(f"Stage {current_stage}: copied assembly toward {neighbor}")
+                        new_pseudo_seed = copy_assembly(cur_tile, neighbor, cancel_callback)
 
                         if new_pseudo_seed != None:
                             stack.append(new_pseudo_seed)
-                            # emit_snapshot(f"Stage {current_stage}: queued new pseudo seed from {neighbor}")
 
             if cur_tile.previous != None:
                 if retrieve_tile(cur_tile, cur_tile.previous[0]).copied == False:
                     direction = cur_tile.previous[0]
-                    choose_copy_direction(cur_tile, direction)
-                    # emit_snapshot(f"Stage {current_stage}: chose copy direction {direction}")
+                    choose_copy_direction(cur_tile, direction, cancel_callback)
 
-                    new_pseudo_seed = copy_assembly(cur_tile, direction)
-                    # emit_snapshot(f"Stage {current_stage}: copied assembly toward {direction}")
+                    new_pseudo_seed = copy_assembly(cur_tile, direction, cancel_callback)
 
                     if new_pseudo_seed != None:
                         stack.append(new_pseudo_seed)
-                        # emit_snapshot(f"Stage {current_stage}: queued new pseudo seed from {direction}")
 
-        hard_reset()
-        # emit_snapshot(f"Stage {current_stage}: completed hard reset")
+        hard_reset(cancel_callback)
 
         current_stage += 1
-        # emit_snapshot(f"Completed stage {current_stage - 1}")
 
     return [seed_tile, original_seed_tile]
