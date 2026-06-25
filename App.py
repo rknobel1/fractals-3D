@@ -12,7 +12,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QLabel,
     QComboBox,
-    QMessageBox
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QShortcut, QKeySequence
@@ -25,7 +24,7 @@ class GeneratorBuilderWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("3D Generator Builder")
+        self.setWindowTitle("Fractals in 3D Seeded TA")
         self.resize(1400, 900)
 
         self.current_layer = 0
@@ -99,6 +98,7 @@ class GeneratorBuilderWindow(QMainWindow):
         sidebar_layout.addWidget(self.stage_combo)
         self.stage_combo.hide()
 
+        # Run button
         self.run_btn = QPushButton("Run")
         self.run_btn.clicked.connect(self.run_simulation)
         sidebar_layout.addWidget(self.run_btn)
@@ -134,7 +134,6 @@ class GeneratorBuilderWindow(QMainWindow):
 
         sidebar_layout.addWidget(self.shortcuts_label)
 
-        # Selecting origin cube
         self.mode = "build"
         self.origin_tile = None
 
@@ -146,79 +145,7 @@ class GeneratorBuilderWindow(QMainWindow):
         self.update_back_button()
         self.setup_scene()
 
-    def set_origin_tile(self, tile):
-        self.origin_tile = tile
-
-        self.redraw_scene()
-
-        self.layer_label.setText(
-            f"Selected origin: {tile} — press Done to confirm"
-        )
-        self.done_btn.setText("Done")
-        self.done_btn.setEnabled(True)
-
-    def setup_scene(self):
-        self.plotter.set_background("white")
-        self.plotter.add_axes()
-
-        bounds_cube = pv.Cube(
-            center=(0, 0, self.generator_size / 2),
-            x_length=self.generator_size,
-            y_length=self.generator_size,
-            z_length=self.generator_size,
-        )
-
-        self.plotter.add_mesh(
-            bounds_cube,
-            style="wireframe",
-            color="black",
-            line_width=2,
-        )
-
-        self.draw_active_layer_grid()
-
-        self.plotter.camera_position = [
-            (0, -25, 20),  # camera position (south of model)
-            (0, 0, 5),     # focal point
-            (0, 0, 1),     # up direction
-        ]
-        self.plotter.reset_camera()
-        self.enable_cube_placement()
-
-    def layer_has_tiles(self, z):
-        return any(tile_z == z for _x, _y, tile_z in self.generator_tiles)
-    
-    def has_higher_layer(self):
-        return any(tile_z > self.current_layer for _x, _y, tile_z in self.generator_tiles)
-    
-    def get_layer_label_text(self):
-        if self.mode == "select_origin":
-            return f"Select origin cube — Layer Z = {self.current_layer}"
-
-        if self.origin_tile is not None:
-            return f"Origin selected: {self.origin_tile}"
-
-        return f"Current Layer: Z = {self.current_layer}"
-
-    def update_layer_buttons(self):
-        self.prev_btn.setEnabled(self.current_layer > 0)
-
-        can_go_next = (
-            self.current_layer < self.generator_size - 1
-            and (
-                self.layer_has_tiles(self.current_layer)
-                or self.has_higher_layer()
-            )
-        )
-
-        self.next_btn.setEnabled(can_go_next)
-
-    def update_done_button(self):
-        self.done_btn.setEnabled(len(self.generator_tiles) > 0)
-
-    def update_back_button(self):
-        self.back_btn.setEnabled(self.mode in ("select_origin", "select_stages"))
-
+    # VISUALS
     def draw_active_layer_grid(self):
         half = self.generator_size // 2
         z = self.current_layer
@@ -245,6 +172,137 @@ class GeneratorBuilderWindow(QMainWindow):
                 color="lightgray",
                 width=1,
             )
+
+    def draw_bounding_box(self):
+        bounds_cube = pv.Cube(
+            center=(0, 0, self.generator_size / 2),
+            x_length=self.generator_size,
+            y_length=self.generator_size,
+            z_length=self.generator_size,
+        )
+
+        self.plotter.add_mesh(
+            bounds_cube,
+            style="wireframe",
+            color="black",
+            line_width=2,
+            pickable=False,
+        )
+
+    def draw_all_cubes(self):
+        self.tile_actors.clear()
+
+        for tile in self.generator_tiles:
+            _x, _y, z = tile
+
+            if tile == self.origin_tile:
+                color = "black"
+                opacity = 1.0 if z == self.current_layer else 0.25
+            else:
+                color = "lightblue" if z == self.current_layer else "gray"
+                opacity = 1.0 if z == self.current_layer else 0.25
+
+            actor = self.add_cube(tile, color=color, opacity=opacity)
+            self.tile_actors[tile] = actor
+
+    def get_layer_label_text(self):
+        if self.mode == "select_origin":
+            return f"Select origin cube — Layer Z = {self.current_layer}"
+
+        if self.origin_tile is not None:
+            return f"Origin selected: {self.origin_tile}"
+
+        return f"Current Layer: Z = {self.current_layer}"
+
+    def setup_scene(self):
+        self.plotter.set_background("white")
+        self.plotter.add_axes()
+
+        self.draw_bounding_box()
+        self.draw_active_layer_grid()
+
+        # Camera position (south of model), focal point, up direction
+        self.plotter.camera_position = [
+            (0, -25, 20),  
+            (0, 0, 5),     
+            (0, 0, 1),     
+        ]
+        self.plotter.reset_camera()
+        self.enable_cube_placement()
+
+    def redraw_scene(self):
+        self.plotter.clear()
+
+        self.plotter.set_background("white")
+        self.plotter.add_axes()
+
+        self.draw_bounding_box()
+        self.draw_active_layer_grid()
+        self.draw_all_cubes()
+
+        self.plotter.render()
+
+    # UTILS
+    def set_origin_tile(self, tile):
+        self.origin_tile = tile
+
+        self.redraw_scene()
+
+        self.layer_label.setText(
+            f"Selected origin: {tile} — press Done to confirm"
+        )
+        self.done_btn.setText("Done")
+        self.done_btn.setEnabled(True)
+
+    def layer_has_tiles(self, z):
+        return any(tile_z == z for _x, _y, tile_z in self.generator_tiles)
+    
+    def has_higher_layer(self):
+        return any(tile_z > self.current_layer for _x, _y, tile_z in self.generator_tiles)
+
+    def enter_origin_selection_mode(self):
+        if self.mode == "build":
+            valid, error = self.check_valid_seed_3d()
+
+            if not valid:
+                self.layer_label.setText(error)
+                return
+
+            self.mode = "select_origin"
+            self.update_back_button()
+            self.done_btn.setText("Confirm Origin")
+            self.done_btn.setEnabled(False)
+            self.layer_label.setText(
+                f"Select origin cube — Layer Z = {self.current_layer}"
+            )
+            return
+
+        if self.mode == "select_origin":
+            if self.origin_tile is None:
+                return
+
+            self.show_stage_selection()
+            return
+
+    # BUTTONS AND FUNCTIONALITY
+    def update_layer_buttons(self):
+        self.prev_btn.setEnabled(self.current_layer > 0)
+
+        can_go_next = (
+            self.current_layer < self.generator_size - 1
+            and (
+                self.layer_has_tiles(self.current_layer)
+                or self.has_higher_layer()
+            )
+        )
+
+        self.next_btn.setEnabled(can_go_next)
+
+    def update_done_button(self):
+        self.done_btn.setEnabled(len(self.generator_tiles) > 0)
+
+    def update_back_button(self):
+        self.back_btn.setEnabled(self.mode in ("select_origin", "select_stages"))
 
     def enable_cube_placement(self):
         self.plotter.iren.add_observer("LeftButtonPressEvent", self.on_left_click)
@@ -301,7 +359,7 @@ class GeneratorBuilderWindow(QMainWindow):
             self.update_done_button()
             self.update_layer_buttons()
             self.plotter.render()
-    
+
     def intersect_camera_ray_with_layer(self, camera_pos, picked_pos):
         z = self.current_layer
 
@@ -363,50 +421,6 @@ class GeneratorBuilderWindow(QMainWindow):
         self.update_layer_buttons()
         self.plotter.render()
 
-    def redraw_scene(self):
-        self.plotter.clear()
-
-        self.plotter.set_background("white")
-        self.plotter.add_axes()
-
-        self.draw_bounding_box()
-        self.draw_active_layer_grid()
-        self.draw_all_cubes()
-
-        self.plotter.render()
-
-    def draw_bounding_box(self):
-        bounds_cube = pv.Cube(
-            center=(0, 0, self.generator_size / 2),
-            x_length=self.generator_size,
-            y_length=self.generator_size,
-            z_length=self.generator_size,
-        )
-
-        self.plotter.add_mesh(
-            bounds_cube,
-            style="wireframe",
-            color="black",
-            line_width=2,
-            pickable=False,
-        )
-
-    def draw_all_cubes(self):
-        self.tile_actors.clear()
-
-        for tile in self.generator_tiles:
-            _x, _y, z = tile
-
-            if tile == self.origin_tile:
-                color = "black"
-                opacity = 1.0 if z == self.current_layer else 0.25
-            else:
-                color = "lightblue" if z == self.current_layer else "gray"
-                opacity = 1.0 if z == self.current_layer else 0.25
-
-            actor = self.add_cube(tile, color=color, opacity=opacity)
-            self.tile_actors[tile] = actor
-
     def add_cube(self, tile, color="lightblue", opacity=1.0):
         x, y, z = tile
         half = self.generator_size / 2
@@ -431,7 +445,6 @@ class GeneratorBuilderWindow(QMainWindow):
         )
 
         return actor
-
 
     def remove_cube(self, tile):
         actor = self.tile_actors.pop(tile, None)
@@ -525,31 +538,8 @@ class GeneratorBuilderWindow(QMainWindow):
 
         self.update_layer_buttons()
         self.redraw_scene()
-
-    def enter_origin_selection_mode(self):
-        if self.mode == "build":
-            valid, error = self.check_valid_seed_3d()
-
-            if not valid:
-                self.layer_label.setText(error)
-                return
-
-            self.mode = "select_origin"
-            self.update_back_button()
-            self.done_btn.setText("Confirm Origin")
-            self.done_btn.setEnabled(False)
-            self.layer_label.setText(
-                f"Select origin cube — Layer Z = {self.current_layer}"
-            )
-            return
-
-        if self.mode == "select_origin":
-            if self.origin_tile is None:
-                return
-
-            self.show_stage_selection()
-            return
         
+    # LOGIC
     def check_valid_seed_3d(self):
         if len(self.generator_tiles) < 1:
             return False, "Left click to place tiles"
@@ -994,9 +984,9 @@ class GeneratorBuilderWindow(QMainWindow):
             )
 
         self.plotter.camera_position = [
-            (0, -25, 20),  # camera position (south of model)
-            (0, 0, 5),     # focal point
-            (0, 0, 1),     # up direction
+            (0, -25, 20),  
+            (0, 0, 5),     
+            (0, 0, 1),     
         ]
         self.plotter.reset_camera()
         self.plotter.render()
