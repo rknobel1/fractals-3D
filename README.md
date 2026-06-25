@@ -8,8 +8,8 @@ A Seeded Tile Automata emulator for fractal generation.
 
 2. Clone this repo or download the files.  
 ```bash
-git clone https://github.com/rknobel1/fractals.git
-cd fractals
+git clone https://github.com/rknobel1/fractals-3D.git
+cd fractals-3D
 ```
 
 3. Install dependencies:  
@@ -19,7 +19,7 @@ pip install -r requirements.txt
 
 ## Running  
 ```
-python Main.py
+python App.py
 ```
 
 Paint a fractal seed using left click to place tiles and right click to delete tiles.
