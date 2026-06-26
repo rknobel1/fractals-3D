@@ -1217,7 +1217,6 @@ class GeneratorBuilderWindow(QMainWindow):
             return
 
         self.set_running_state(True)
-        QApplication.setOverrideCursor(Qt.WaitCursor)
         QApplication.processEvents()
 
         seed_tile = GeneratorBuilderWindow.create_seed(
@@ -1252,23 +1251,17 @@ class GeneratorBuilderWindow(QMainWindow):
         self.sim_thread.start()
 
     def on_simulation_finished(self, seed_tile):
-        QApplication.restoreOverrideCursor()
-
         self.mode = "display_result"
         self.update_back_button()
         self.set_running_state(False)
         self.display_simulation_result(seed_tile)
 
     def on_simulation_error(self, error_message):
-        QApplication.restoreOverrideCursor()
-
         self.restore_stage_selection_after_simulation(
             f"Simulation failed: {error_message}"
         )
 
     def on_simulation_cancelled(self):
-        QApplication.restoreOverrideCursor()
-
         self.restore_stage_selection_after_simulation(
             f"Simulation Cancelled."
         )
