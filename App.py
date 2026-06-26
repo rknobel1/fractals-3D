@@ -13,12 +13,34 @@ from PySide6.QtWidgets import (
     QLabel,
     QComboBox,
 )
-from PySide6.QtCore import Qt, QThread, QObject, Signal
+from PySide6.QtCore import Qt, QThread, QObject, Signal, QEvent
 from PySide6.QtGui import QShortcut, QKeySequence
 from collections import deque
 from Utils import *
 
 MAX_SIM_SIZE = 1_000_000
+
+class PyVistaKeyFilter(QObject):
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.KeyPress:
+            blocked = {
+                Qt.Key_Q,
+                Qt.Key_V,
+                Qt.Key_W,
+                Qt.Key_S,
+                Qt.Key_F,
+                Qt.Key_Plus,
+                Qt.Key_Equal,
+                Qt.Key_Minus,
+            }
+
+            if event.key() in blocked:
+                return True
+
+            if event.key() == Qt.Key_C and event.modifiers() & Qt.ShiftModifier:
+                return True
+
+        return super().eventFilter(obj, event)
 
 class SimulationWorker(QObject):
     finished = Signal(object)
@@ -188,6 +210,12 @@ class GeneratorBuilderWindow(QMainWindow):
         self.update_layer_buttons()
         self.update_back_button()
         self.setup_scene()
+        self.clear_pyvista_controls()
+
+    def clear_pyvista_controls(self):
+        self.pyvista_key_filter = PyVistaKeyFilter(self)
+        self.plotter.installEventFilter(self.pyvista_key_filter)
+        self.plotter.interactor.installEventFilter(self.pyvista_key_filter)
 
     # VISUALS
     def draw_active_layer_grid(self):
