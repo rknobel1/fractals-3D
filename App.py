@@ -170,6 +170,18 @@ class GeneratorBuilderWindow(QMainWindow):
         self.cancel_btn.setEnabled(False)
         sidebar_layout.addWidget(self.cancel_btn)
 
+        # Warning label
+        self.warning_label = QLabel()
+        self.warning_label.setWordWrap(True)
+        self.warning_label.setStyleSheet("""
+        QLabel {
+            color: #b35c00;
+            font-size: 11px;
+        }
+        """)
+        self.warning_label.hide()
+        sidebar_layout.addWidget(self.warning_label)
+
         self.stages = 1
 
         self.done_btn.setEnabled(False)
@@ -182,7 +194,8 @@ class GeneratorBuilderWindow(QMainWindow):
             B - Previous Layer<br>
             Enter - Confirm<br><br>
             LMB - Place Tile<br>
-            RMB - Remove Tile
+            RMB - Remove Tile<br><br>
+            R - Fit Objects in View
             """)
         
         self.shortcuts_label.setStyleSheet("""
@@ -589,6 +602,7 @@ class GeneratorBuilderWindow(QMainWindow):
             self.stage_label.hide()
             self.stage_combo.hide()
             self.run_btn.hide()
+            self.warning_label.hide()
 
             self.done_btn.show()
             self.done_btn.setText("Confirm Origin")
@@ -645,6 +659,7 @@ class GeneratorBuilderWindow(QMainWindow):
         self.layer_label.setText(f"Current Layer: Z = {self.current_layer}")
 
         self.update_layer_buttons()
+        self.warning_label.hide()
         self.redraw_scene()
         self.reset_view()
 
@@ -655,6 +670,22 @@ class GeneratorBuilderWindow(QMainWindow):
         self.cancel_btn.setEnabled(False)
         self.cancel_btn.setText("Cancelling...")
         self.layer_label.setText("Cancelling...")
+
+    def update_simulation_warning(self):
+        if self.stage_combo.count() == 0:
+            self.warning_label.hide()
+            return
+
+        _, _, tile_count = self.stage_combo.currentData()
+
+        if tile_count > 300_000:
+            self.warning_label.setText(
+                f"⚠ This simulation will generate "
+                f"{tile_count:,} tiles and may take a couple minutes."
+            )
+            self.warning_label.show()
+        else:
+            self.warning_label.hide()
 
     # LOGIC
     def check_valid_seed_3d(self):
@@ -1016,7 +1047,7 @@ class GeneratorBuilderWindow(QMainWindow):
         actual_stage = 1
 
         while num_tiles < MAX_SIM_SIZE:
-            options.append((stage, actual_stage))
+            options.append((stage, actual_stage, num_tiles))
             num_tiles *= num_tiles
             stage += 1
             actual_stage *= 2
@@ -1024,11 +1055,19 @@ class GeneratorBuilderWindow(QMainWindow):
         if not options:
             options = [(1, 1)]
 
-        for stage, actual_stage in options:
+        for stage, actual_stage, num_tiles in options:
             self.stage_combo.addItem(
                 f"{stage} - (stage: {actual_stage})",
-                stage,
+                (stage, actual_stage, num_tiles),
             )
+
+        if not hasattr(self, "_stage_warning_connected"):
+            self.stage_combo.currentIndexChanged.connect(
+                self.update_simulation_warning
+            )
+            self._stage_warning_connected = True
+
+        self.update_simulation_warning()
 
         self.layer_label.setText(
             f"Origin selected: {self.origin_tile}. Choose simulation depth."
@@ -1164,6 +1203,7 @@ class GeneratorBuilderWindow(QMainWindow):
 
         self.set_running_state(False)
         self.update_back_button()
+        self.update_simulation_warning()
 
         if message is None:
             message = f"Origin selected: {self.origin_tile}. Choose simulation depth."
@@ -1171,7 +1211,7 @@ class GeneratorBuilderWindow(QMainWindow):
         self.layer_label.setText(message)
 
     def run_simulation(self):
-        self.stages = self.stage_combo.currentData()
+        self.stages, _, _ = self.stage_combo.currentData()
 
         if self.origin_tile is None:
             return
