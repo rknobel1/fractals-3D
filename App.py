@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QRadioButton,
     QButtonGroup,
 )
-from PySide6.QtCore import Qt, QThread, QObject, Signal, QEvent
+from PySide6.QtCore import Qt, QThread, QObject, Signal, QEvent, QTimer
 from PySide6.QtGui import QShortcut, QKeySequence
 from collections import deque
 from Simulation import *
@@ -169,6 +169,16 @@ class GeneratorBuilderWindow(QMainWindow):
 
         self.next_shortcut = QShortcut(QKeySequence("N"), self)
         self.next_shortcut.activated.connect(self.next_layer)
+
+        # Play options for step mode
+        self.playing_steps = False
+        self.step_play_timer = QTimer(self)
+        self.step_play_timer.timeout.connect(self.play_next_step)
+
+        self.play_btn = QPushButton("Play")
+        self.play_btn.clicked.connect(self.toggle_step_play)
+        self.play_btn.hide()
+        sidebar_layout.addWidget(self.play_btn)
 
         # Reset camera view to default
         self.reset_btn = QPushButton("Reset Camera")
@@ -487,7 +497,7 @@ class GeneratorBuilderWindow(QMainWindow):
         self.done_btn.setEnabled(len(self.generator_tiles) > 0)
 
     def update_back_button(self):
-        self.back_btn.setEnabled(self.mode in ("select_origin", "select_stages", "display_result"))
+        self.back_btn.setEnabled(self.mode in ("select_origin", "select_stages", "display_result", "step_result"))
 
     def enable_cube_placement(self):
         self.plotter.iren.add_observer("LeftButtonPressEvent", self.on_left_click)
@@ -681,6 +691,8 @@ class GeneratorBuilderWindow(QMainWindow):
             self.stage_label.hide()
             self.stage_combo.hide()
             self.run_btn.hide()
+            self.stop_step_playback()
+            self.play_btn.hide()
             self.warning_label.hide()
             self.sim_mode_label.hide()
             self.regular_sim_radio.hide()
@@ -731,6 +743,8 @@ class GeneratorBuilderWindow(QMainWindow):
         self.stage_combo.hide()
         self.run_btn.hide()
         self.cancel_btn.hide()
+        self.stop_step_playback()
+        self.play_btn.hide()
         self.sim_mode_label.hide()
         self.regular_sim_radio.hide()
         self.step_sim_radio.hide()
@@ -1130,6 +1144,8 @@ class GeneratorBuilderWindow(QMainWindow):
         self.regular_sim_radio.show()
         self.step_sim_radio.show()
         self.run_btn.show()
+        self.stop_step_playback()
+        self.play_btn.hide()
 
         self.stage_combo.clear()
 
@@ -1280,8 +1296,12 @@ class GeneratorBuilderWindow(QMainWindow):
         self.plotter.render()
 
     def update_step_buttons(self):
-        self.prev_btn.setEnabled(self.step_index > 0)
-        self.next_btn.setEnabled(self.step_index < len(self.step_snapshots))
+        if self.playing_steps:
+            self.prev_btn.setEnabled(False)
+            self.next_btn.setEnabled(False)
+        else:
+            self.prev_btn.setEnabled(self.step_index > 0)
+            self.next_btn.setEnabled(self.step_index < len(self.step_snapshots))
 
         self.layer_label.setText(
             f"Step {self.step_index} / {len(self.step_snapshots)}"
@@ -1316,6 +1336,10 @@ class GeneratorBuilderWindow(QMainWindow):
         self.prev_btn.setEnabled(False)
         self.next_btn.setEnabled(len(self.step_snapshots) > 0)
 
+        self.play_btn.show()
+        self.play_btn.setText("Play")
+        self.play_btn.setEnabled(len(self.step_snapshots) > 0)
+
         self.layer_label.setText(
             f"Step simulation ready — 0 / {len(self.step_snapshots)}"
         )
@@ -1323,7 +1347,12 @@ class GeneratorBuilderWindow(QMainWindow):
         self.plotter.reset_camera()
         self.plotter.render()
 
-    def next_step(self):
+    def next_step(self, from_timer=False):
+        if not from_timer and self.playing_steps:
+            self.step_play_timer.stop()
+            self.playing_steps = False
+            self.play_btn.setText("Play")
+
         if self.step_index >= len(self.step_snapshots):
             return
 
@@ -1340,6 +1369,11 @@ class GeneratorBuilderWindow(QMainWindow):
         self.plotter.render()
 
     def previous_step(self):
+        if self.playing_steps:
+            self.step_play_timer.stop()
+            self.playing_steps = False
+            self.play_btn.setText("Play")
+
         if self.step_index <= 0:
             return
 
@@ -1354,7 +1388,50 @@ class GeneratorBuilderWindow(QMainWindow):
         self.update_step_buttons()
         self.plotter.render()
 
+    def toggle_step_play(self):
+        if self.playing_steps:
+            self.step_play_timer.stop()
+            self.playing_steps = False
+            self.play_btn.setText("Play")
+            self.update_step_buttons()
+            return
+
+        if self.step_index >= len(self.step_snapshots):
+            return
+
+        self.playing_steps = True
+        self.play_btn.setText("Pause")
+
+        self.prev_btn.setEnabled(False)
+        self.next_btn.setEnabled(False)
+
+        self.step_play_timer.start(150)
+
+    def play_next_step(self):
+        if self.step_index >= len(self.step_snapshots):
+            self.step_play_timer.stop()
+            self.playing_steps = False
+            self.play_btn.setText("Play")
+
+            self.update_step_buttons()
+            return
+
+        self.next_step(from_timer=True)
+
+    def stop_step_playback(self):
+        if self.step_play_timer.isActive():
+            self.step_play_timer.stop()
+
+        self.playing_steps = False
+
+        if hasattr(self, "play_btn"):
+            self.play_btn.setText("Play")
+
+        self.update_step_buttons()
+
     def display_simulation_result(self, seed_tile):
+        self.stop_step_playback()
+        self.play_btn.hide()
         coords = GeneratorBuilderWindow.extract_3d_layout(seed_tile)
 
         self.plotter.clear()
@@ -1398,6 +1475,8 @@ class GeneratorBuilderWindow(QMainWindow):
         self.step_sim_radio.show()
         self.run_btn.show()
         self.done_btn.hide()
+        self.stop_step_playback()
+        self.play_btn.hide()
 
         self.prev_btn.setText("Previous Layer")
         self.next_btn.setText("Next Layer")
