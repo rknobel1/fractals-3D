@@ -12,6 +12,8 @@ from PySide6.QtWidgets import (
     QPushButton,
     QLabel,
     QComboBox,
+    QRadioButton,
+    QButtonGroup,
 )
 from PySide6.QtCore import Qt, QThread, QObject, Signal, QEvent
 from PySide6.QtGui import QShortcut, QKeySequence
@@ -58,6 +60,44 @@ class SimulationWorker(QObject):
 
     def run(self):
         try:
+            seed_tile, _ = run_simulation(
+                self.seed_tile,
+                self.stages,
+                cancel_callback=lambda: self.cancelled
+            )
+
+            if self.cancelled:
+                self.cancelled_signal.emit()
+            else:
+                self.finished.emit(seed_tile)
+
+        except SimulationCancelled:
+            self.cancelled_signal.emit()
+
+        except Exception as e:
+            if self.cancelled:
+                self.cancelled_signal.emit()
+            else:
+                self.error.emit(str(e))
+
+
+class StepSimulationWorker(QObject):
+    finished = Signal(object)
+    error = Signal(str)
+    cancelled_signal = Signal()
+
+    def __init__(self, seed_tile, stages):
+        super().__init__()
+        self.seed_tile = seed_tile
+        self.stages = stages
+        self.cancelled = False
+
+    def cancel(self):
+        self.cancelled = True
+
+    def run(self):
+        try:
+            # For now, step mode uses the same regular simulation code.
             seed_tile, _ = run_simulation(
                 self.seed_tile,
                 self.stages,
@@ -156,6 +196,24 @@ class GeneratorBuilderWindow(QMainWindow):
         self.stage_combo = QComboBox()
         sidebar_layout.addWidget(self.stage_combo)
         self.stage_combo.hide()
+
+        # Simulation mode radio buttons
+        self.sim_mode_label = QLabel("Simulation Mode")
+        sidebar_layout.addWidget(self.sim_mode_label)
+        self.sim_mode_label.hide()
+
+        self.sim_mode_group = QButtonGroup(self)
+
+        self.regular_sim_radio = QRadioButton("Regular")
+        self.regular_sim_radio.setChecked(True)
+        self.sim_mode_group.addButton(self.regular_sim_radio)
+        sidebar_layout.addWidget(self.regular_sim_radio)
+        self.regular_sim_radio.hide()
+
+        self.step_sim_radio = QRadioButton("Step Mode")
+        self.sim_mode_group.addButton(self.step_sim_radio)
+        sidebar_layout.addWidget(self.step_sim_radio)
+        self.step_sim_radio.hide()
 
         # Run button
         self.run_btn = QPushButton("Run")
@@ -347,6 +405,8 @@ class GeneratorBuilderWindow(QMainWindow):
         self.reset_btn.setEnabled(not running)
         self.reset_all_btn.setEnabled(not running)
         self.stage_combo.setEnabled(not running)
+        self.regular_sim_radio.setEnabled(not running)
+        self.step_sim_radio.setEnabled(not running)
         self.run_btn.setEnabled(not running)
 
         self.cancel_btn.setVisible(running)
@@ -1037,6 +1097,9 @@ class GeneratorBuilderWindow(QMainWindow):
         self.done_btn.hide()
         self.stage_label.show()
         self.stage_combo.show()
+        self.sim_mode_label.show()
+        self.regular_sim_radio.show()
+        self.step_sim_radio.show()
         self.run_btn.show()
 
         self.stage_combo.clear()
@@ -1198,6 +1261,9 @@ class GeneratorBuilderWindow(QMainWindow):
         self.mode = "select_stages"
         self.stage_label.show()
         self.stage_combo.show()
+        self.sim_mode_label.show()
+        self.regular_sim_radio.show()
+        self.step_sim_radio.show()
         self.run_btn.show()
         self.done_btn.hide()
 
@@ -1228,7 +1294,11 @@ class GeneratorBuilderWindow(QMainWindow):
         )
 
         self.sim_thread = QThread()
-        self.sim_worker = SimulationWorker(seed_tile, self.stages)
+
+        if self.step_sim_radio.isChecked():
+            self.sim_worker = StepSimulationWorker(seed_tile, self.stages)
+        else:
+            self.sim_worker = SimulationWorker(seed_tile, self.stages)
 
         self.sim_worker.moveToThread(self.sim_thread)
 
