@@ -1274,57 +1274,64 @@ class GeneratorBuilderWindow(QMainWindow):
         self.plotter.render()
 
     def update_step_buttons(self):
-        self.prev_btn.setText("Previous Step")
-        self.next_btn.setText("Next Step")
         self.prev_btn.setEnabled(self.step_index > 0)
         self.next_btn.setEnabled(self.step_index < len(self.step_snapshots))
 
+        self.layer_label.setText(
+            f"Step {self.step_index} / {len(self.step_snapshots)}"
+        )
+
     def display_step_simulation_result(self, snapshots):
-        self.mode = "step_result"
-        self.step_snapshots = snapshots or []
+        self.mode = "display_result"
+        self.step_snapshots = snapshots
         self.step_index = 0
         self.step_initial_tiles = set(self.generator_tiles)
         self.step_tiles = set(self.generator_tiles)
+        self.tile_actors.clear()
 
-        self.stage_label.hide()
-        self.stage_combo.hide()
-        self.sim_mode_label.hide()
-        self.regular_sim_radio.hide()
-        self.step_sim_radio.hide()
-        self.run_btn.hide()
-        self.done_btn.hide()
+        self.plotter.clear()
+        self.plotter.set_background("white")
+        self.plotter.add_axes()
 
-        self.current_layer = 0
-        self.redraw_step_simulation_scene()
+        for tile in self.step_tiles:
+            color = "black" if tile == self.origin_tile else "lightblue"
+            actor = self.add_cube(tile, color=color, opacity=1.0)
+            self.tile_actors[tile] = actor
 
-        self.plotter.camera_position = [
-            (0, -25, 20),
-            (0, 0, 5),
-            (0, 0, 1),
-        ]
+        self.prev_btn.setText("Previous Step")
+        self.next_btn.setText("Next Step")
+
+        self.prev_btn.clicked.disconnect()
+        self.next_btn.clicked.disconnect()
+
+        self.prev_btn.clicked.connect(self.previous_step)
+        self.next_btn.clicked.connect(self.next_step)
+
+        self.prev_btn.setEnabled(False)
+        self.next_btn.setEnabled(len(self.step_snapshots) > 0)
+
+        self.layer_label.setText(
+            f"Step simulation ready — 0 / {len(self.step_snapshots)}"
+        )
+
         self.plotter.reset_camera()
         self.plotter.render()
-
-        self.update_step_buttons()
-        self.update_back_button()
-        self.layer_label.setText(
-            f"Step simulation — step {self.step_index}/{len(self.step_snapshots)}"
-        )
 
     def next_step(self):
         if self.step_index >= len(self.step_snapshots):
             return
 
         snapshot = self.step_snapshots[self.step_index]
-        if snapshot.get("type") == "attachment":
-            self.step_tiles.add(self._snapshot_coord(snapshot))
+        tile = self._snapshot_coord(snapshot)
+
+        if tile not in self.step_tiles:
+            self.step_tiles.add(tile)
+            actor = self.add_cube(tile, color="lightblue", opacity=1.0)
+            self.tile_actors[tile] = actor
 
         self.step_index += 1
-        self.redraw_step_simulation_scene()
         self.update_step_buttons()
-        self.layer_label.setText(
-            f"Step simulation — step {self.step_index}/{len(self.step_snapshots)}"
-        )
+        self.plotter.render()
 
     def previous_step(self):
         if self.step_index <= 0:
@@ -1332,16 +1339,14 @@ class GeneratorBuilderWindow(QMainWindow):
 
         self.step_index -= 1
         snapshot = self.step_snapshots[self.step_index]
-        if snapshot.get("type") == "attachment":
-            coord = self._snapshot_coord(snapshot)
-            if coord not in self.step_initial_tiles:
-                self.step_tiles.discard(coord)
+        tile = self._snapshot_coord(snapshot)
 
-        self.redraw_step_simulation_scene()
+        if tile in self.step_tiles:
+            self.step_tiles.remove(tile)
+            self.remove_cube(tile)
+
         self.update_step_buttons()
-        self.layer_label.setText(
-            f"Step simulation — step {self.step_index}/{len(self.step_snapshots)}"
-        )
+        self.plotter.render()
 
     def display_simulation_result(self, seed_tile):
         coords = GeneratorBuilderWindow.extract_3d_layout(seed_tile)
