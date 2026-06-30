@@ -19,6 +19,7 @@ from PySide6.QtCore import Qt, QThread, QObject, Signal, QEvent
 from PySide6.QtGui import QShortcut, QKeySequence
 from collections import deque
 from Simulation import *
+from StepSimulation import *
 
 MAX_SIM_SIZE = 1_000_000
 
@@ -97,8 +98,7 @@ class StepSimulationWorker(QObject):
 
     def run(self):
         try:
-            # For now, step mode uses the same regular simulation code.
-            seed_tile, _ = run_simulation(
+            seed_tile, _ = run_step_simulation(
                 self.seed_tile,
                 self.stages,
                 cancel_callback=lambda: self.cancelled
@@ -893,9 +893,9 @@ class GeneratorBuilderWindow(QMainWindow):
                 next_dirs = None
 
             if prev is None:
-                tile = Tile(prev, next_dirs)
+                tile = Tile(prev, next_dirs, x, y, z)
             else:
-                tile = Tile([prev], next_dirs)
+                tile = Tile([prev], next_dirs, x, y, z)
 
             if prev is None or next_dirs is None:
                 tile.terminal = True

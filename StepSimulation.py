@@ -4974,7 +4974,7 @@ def copy_assembly(tile, d, cancel_callback=None):
     return returned_pseudo_seed
 
 # Run simulation -----------------------------------------------------------------------------------
-def run_simulation(seed_tile, stage, cancel_callback=None):
+def run_step_simulation(seed_tile, stage, cancel_callback=None):
     _raise_if_cancelled(cancel_callback)
     original_seed_tile = copy.deepcopy(seed_tile)
 
