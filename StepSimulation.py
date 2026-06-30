@@ -14,6 +14,32 @@ hard_reset_tiles = []
 def get_tag(x, y, z):
         return str(x) + ',' + str(y) + ',' + str(z)
 
+# Step-mode snapshot recording. This is enabled only while run_step_simulation runs.
+_step_snapshots = None
+
+def _tile_snapshot(tile):
+    return {
+        "id": tile.id,
+        "x": tile.x,
+        "y": tile.y,
+        "z": tile.z,
+        "terminal": tile.terminal,
+        "original_seed": tile.original_seed,
+        "pseudo_seed": tile.pseudo_seed,
+    }
+
+def _record_tile_placement(tile):
+    if _step_snapshots is None:
+        return
+
+    if tile.x is None or tile.y is None or tile.z is None:
+        return
+
+    _step_snapshots.append({
+        "type": "attachment",
+        "tile": _tile_snapshot(tile),
+    })
+
 class Tile():
 
     def __init__(self, p, n, x=None, y=None, z=None):
@@ -99,6 +125,8 @@ class Tile():
     
     def set_id(self):
         self.id = get_tag(self.x, self.y, self.z)
+        _record_tile_placement(self)
+        return self.id
 
 def debug_print(t):
     print("Previous: ", t.previous)
@@ -5188,41 +5216,47 @@ def copy_assembly(tile, d, cancel_callback=None):
 
 # Run simulation -----------------------------------------------------------------------------------
 def run_step_simulation(seed_tile, stage, cancel_callback=None):
+    global _step_snapshots
+
     _raise_if_cancelled(cancel_callback)
-    original_seed_tile = copy.deepcopy(seed_tile)
+    _step_snapshots = []
 
-    current_stage = 1
-    while current_stage < stage:
-        _raise_if_cancelled(cancel_callback)
-
-        stack = deque()
-        stack.append(seed_tile)
-        while len(stack) > 0:
+    try:
+        current_stage = 1
+        while current_stage < stage:
             _raise_if_cancelled(cancel_callback)
-            cur_tile = stack.pop()
-            if cur_tile.next != None:
-                for neighbor in cur_tile.next:
-                    _raise_if_cancelled(cancel_callback)
-                    if retrieve_tile(cur_tile, neighbor).copied == False:
-                        choose_copy_direction(cur_tile, neighbor, cancel_callback)
 
-                        new_pseudo_seed = copy_assembly(cur_tile, neighbor, cancel_callback)
+            stack = deque()
+            stack.append(seed_tile)
+            while len(stack) > 0:
+                _raise_if_cancelled(cancel_callback)
+                cur_tile = stack.pop()
+                if cur_tile.next != None:
+                    for neighbor in cur_tile.next:
+                        _raise_if_cancelled(cancel_callback)
+                        if retrieve_tile(cur_tile, neighbor).copied == False:
+                            choose_copy_direction(cur_tile, neighbor, cancel_callback)
+
+                            new_pseudo_seed = copy_assembly(cur_tile, neighbor, cancel_callback)
+
+                            if new_pseudo_seed != None:
+                                stack.append(new_pseudo_seed)
+
+                if cur_tile.previous != None:
+                    if retrieve_tile(cur_tile, cur_tile.previous[0]).copied == False:
+                        direction = cur_tile.previous[0]
+                        choose_copy_direction(cur_tile, direction, cancel_callback)
+
+                        new_pseudo_seed = copy_assembly(cur_tile, direction, cancel_callback)
 
                         if new_pseudo_seed != None:
                             stack.append(new_pseudo_seed)
 
-            if cur_tile.previous != None:
-                if retrieve_tile(cur_tile, cur_tile.previous[0]).copied == False:
-                    direction = cur_tile.previous[0]
-                    choose_copy_direction(cur_tile, direction, cancel_callback)
+            hard_reset(cancel_callback)
 
-                    new_pseudo_seed = copy_assembly(cur_tile, direction, cancel_callback)
+            current_stage += 1
 
-                    if new_pseudo_seed != None:
-                        stack.append(new_pseudo_seed)
+        return _step_snapshots
 
-        hard_reset(cancel_callback)
-
-        current_stage += 1
-
-    return [seed_tile, original_seed_tile]
+    finally:
+        _step_snapshots = None

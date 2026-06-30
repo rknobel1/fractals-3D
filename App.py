@@ -98,7 +98,7 @@ class StepSimulationWorker(QObject):
 
     def run(self):
         try:
-            seed_tile, _ = run_step_simulation(
+            snapshots = run_step_simulation(
                 self.seed_tile,
                 self.stages,
                 cancel_callback=lambda: self.cancelled
@@ -107,7 +107,7 @@ class StepSimulationWorker(QObject):
             if self.cancelled:
                 self.cancelled_signal.emit()
             else:
-                self.finished.emit(seed_tile)
+                self.finished.emit(snapshots)
 
         except SimulationCancelled:
             self.cancelled_signal.emit()
@@ -273,6 +273,11 @@ class GeneratorBuilderWindow(QMainWindow):
 
         self.mode = "build"
         self.origin_tile = None
+
+        self.step_snapshots = []
+        self.step_index = 0
+        self.step_tiles = set()
+        self.step_initial_tiles = set()
 
         main_layout.addWidget(sidebar, stretch=1)
 
@@ -460,6 +465,12 @@ class GeneratorBuilderWindow(QMainWindow):
 
     # BUTTONS AND FUNCTIONALITY
     def update_layer_buttons(self):
+        if self.mode == "step_result":
+            self.update_step_buttons()
+            return
+
+        self.prev_btn.setText("Previous Layer")
+        self.next_btn.setText("Next Layer")
         self.prev_btn.setEnabled(self.current_layer > 0)
 
         can_go_next = (
@@ -627,6 +638,10 @@ class GeneratorBuilderWindow(QMainWindow):
             self.plotter.remove_actor(actor)
 
     def next_layer(self):
+        if self.mode == "step_result":
+            self.next_step()
+            return
+
         if not self.next_btn.isEnabled():
             return
 
@@ -638,6 +653,10 @@ class GeneratorBuilderWindow(QMainWindow):
 
 
     def previous_layer(self):
+        if self.mode == "step_result":
+            self.previous_step()
+            return
+
         if not self.prev_btn.isEnabled():
             return
 
@@ -688,7 +707,7 @@ class GeneratorBuilderWindow(QMainWindow):
 
             self.redraw_scene()
 
-        elif self.mode == "display_result":
+        elif self.mode in ("display_result", "step_result"):
             self.restore_stage_selection_after_simulation()
             self.redraw_scene()
 
@@ -716,6 +735,8 @@ class GeneratorBuilderWindow(QMainWindow):
 
         self.done_btn.setText("Done")
         self.done_btn.setEnabled(False)
+        self.prev_btn.setText("Previous Layer")
+        self.next_btn.setText("Next Layer")
         self.layer_label.setText(f"Current Layer: Z = {self.current_layer}")
 
         self.update_layer_buttons()
@@ -1092,6 +1113,8 @@ class GeneratorBuilderWindow(QMainWindow):
     
     def show_stage_selection(self):
         self.mode = "select_stages"
+        self.prev_btn.setText("Previous Layer")
+        self.next_btn.setText("Next Layer")
 
         self.update_back_button()
         self.done_btn.hide()
@@ -1224,6 +1247,102 @@ class GeneratorBuilderWindow(QMainWindow):
         
         return mesh
 
+    def _snapshot_coord(self, snapshot):
+        tile = snapshot.get("tile", snapshot)
+        return (tile["x"], tile["y"], tile["z"])
+
+    def draw_step_cubes(self):
+        self.tile_actors.clear()
+
+        for tile in self.step_tiles:
+            if tile == self.origin_tile:
+                color = "black"
+            elif tile in self.step_initial_tiles:
+                color = "lightblue"
+            else:
+                color = "orange"
+
+            actor = self.add_cube(tile, color=color, opacity=1.0)
+            self.tile_actors[tile] = actor
+
+    def redraw_step_simulation_scene(self):
+        self.plotter.clear()
+        self.plotter.set_background("white")
+        self.plotter.add_axes()
+
+        self.draw_step_cubes()
+        self.plotter.render()
+
+    def update_step_buttons(self):
+        self.prev_btn.setText("Previous Step")
+        self.next_btn.setText("Next Step")
+        self.prev_btn.setEnabled(self.step_index > 0)
+        self.next_btn.setEnabled(self.step_index < len(self.step_snapshots))
+
+    def display_step_simulation_result(self, snapshots):
+        self.mode = "step_result"
+        self.step_snapshots = snapshots or []
+        self.step_index = 0
+        self.step_initial_tiles = set(self.generator_tiles)
+        self.step_tiles = set(self.generator_tiles)
+
+        self.stage_label.hide()
+        self.stage_combo.hide()
+        self.sim_mode_label.hide()
+        self.regular_sim_radio.hide()
+        self.step_sim_radio.hide()
+        self.run_btn.hide()
+        self.done_btn.hide()
+
+        self.current_layer = 0
+        self.redraw_step_simulation_scene()
+
+        self.plotter.camera_position = [
+            (0, -25, 20),
+            (0, 0, 5),
+            (0, 0, 1),
+        ]
+        self.plotter.reset_camera()
+        self.plotter.render()
+
+        self.update_step_buttons()
+        self.update_back_button()
+        self.layer_label.setText(
+            f"Step simulation — step {self.step_index}/{len(self.step_snapshots)}"
+        )
+
+    def next_step(self):
+        if self.step_index >= len(self.step_snapshots):
+            return
+
+        snapshot = self.step_snapshots[self.step_index]
+        if snapshot.get("type") == "attachment":
+            self.step_tiles.add(self._snapshot_coord(snapshot))
+
+        self.step_index += 1
+        self.redraw_step_simulation_scene()
+        self.update_step_buttons()
+        self.layer_label.setText(
+            f"Step simulation — step {self.step_index}/{len(self.step_snapshots)}"
+        )
+
+    def previous_step(self):
+        if self.step_index <= 0:
+            return
+
+        self.step_index -= 1
+        snapshot = self.step_snapshots[self.step_index]
+        if snapshot.get("type") == "attachment":
+            coord = self._snapshot_coord(snapshot)
+            if coord not in self.step_initial_tiles:
+                self.step_tiles.discard(coord)
+
+        self.redraw_step_simulation_scene()
+        self.update_step_buttons()
+        self.layer_label.setText(
+            f"Step simulation — step {self.step_index}/{len(self.step_snapshots)}"
+        )
+
     def display_simulation_result(self, seed_tile):
         coords = GeneratorBuilderWindow.extract_3d_layout(seed_tile)
 
@@ -1247,6 +1366,8 @@ class GeneratorBuilderWindow(QMainWindow):
             (0, 0, 1),
         ]
 
+        self.prev_btn.setText("Previous Layer")
+        self.next_btn.setText("Next Layer")
         self.prev_btn.setEnabled(False)
         self.next_btn.setEnabled(False)
 
@@ -1267,6 +1388,8 @@ class GeneratorBuilderWindow(QMainWindow):
         self.run_btn.show()
         self.done_btn.hide()
 
+        self.prev_btn.setText("Previous Layer")
+        self.next_btn.setText("Next Layer")
         self.set_running_state(False)
         self.update_back_button()
         self.update_simulation_warning()
@@ -1320,11 +1443,15 @@ class GeneratorBuilderWindow(QMainWindow):
 
         self.sim_thread.start()
 
-    def on_simulation_finished(self, seed_tile):
-        self.mode = "display_result"
-        self.update_back_button()
+    def on_simulation_finished(self, result):
         self.set_running_state(False)
-        self.display_simulation_result(seed_tile)
+
+        if isinstance(result, list):
+            self.display_step_simulation_result(result)
+        else:
+            self.mode = "display_result"
+            self.update_back_button()
+            self.display_simulation_result(result)
 
     def on_simulation_error(self, error_message):
         self.restore_stage_selection_after_simulation(
