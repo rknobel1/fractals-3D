@@ -96,6 +96,9 @@ class Tile():
 
         # If first tile copied
         self.first_tile = False
+    
+    def set_id(self):
+        self.id = get_tag(self.x, self.y, self.z)
 
 def debug_print(t):
     print("Previous: ", t.previous)
@@ -811,6 +814,11 @@ def copy_tile(tile, d, ps):
             if tile.new_n == None: tile.new_n = ['N']
             else: tile.new_n.append('N')
 
+            tile_to_place.x = tile.x
+            tile_to_place.y = tile.y + 1
+            tile_to_place.z = tile.z
+            tile_to_place.set_id()
+
         else: 
             adj_tile = tile.tile_to_N
             adj_tile.S = 'W'
@@ -855,6 +863,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y + 1
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'N')
@@ -904,6 +917,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x + 1
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'E')
 
@@ -950,6 +968,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x - 1
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'W')
@@ -998,6 +1021,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y - 1
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'S')
 
@@ -1043,6 +1071,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y 
+                        tile_to_place.z = tile.z + 1
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'U')
@@ -1090,6 +1123,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z - 1
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'D')
@@ -1470,6 +1508,11 @@ def copy_tile(tile, d, ps):
             tile_to_place.new_p = ['W']
             if tile.new_n == None: tile.new_n = ['E']
             else: tile.new_n.append('E')
+
+            tile_to_place.x = tile.x + 1
+            tile_to_place.y = tile.y
+            tile_to_place.z = tile.z
+            tile_to_place.set_id()
         
         else:
             adj_tile = tile.tile_to_E
@@ -1516,6 +1559,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y + 1
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'N')
@@ -1565,6 +1613,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x + 1
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'E')
 
@@ -1611,6 +1664,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x - 1
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'W')
@@ -1659,6 +1717,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y - 1
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'S')
 
@@ -1706,6 +1769,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z + 1
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'U')
 
@@ -1752,6 +1820,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z - 1
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'D')
@@ -2128,6 +2201,11 @@ def copy_tile(tile, d, ps):
             if tile.new_n == None: tile.new_n = ['W']
             else: tile.new_n.append('W')
 
+            tile_to_place.x = tile.x - 1
+            tile_to_place.y = tile.y
+            tile_to_place.z = tile.z
+            tile_to_place.set_id()
+
         else: 
             adj_tile = tile.tile_to_W
             adj_tile.E = 'W'
@@ -2172,6 +2250,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y + 1
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'N')
@@ -2221,6 +2304,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x + 1
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'E')
 
@@ -2267,6 +2355,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x - 1
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'W')
@@ -2315,6 +2408,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y - 1
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'S')
 
@@ -2362,6 +2460,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z + 1
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'U')
 
@@ -2408,6 +2511,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z - 1
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'D')
@@ -2783,6 +2891,11 @@ def copy_tile(tile, d, ps):
             tile_to_place.new_p = ['N']
             if tile.new_n == None: tile.new_n = ['S']
             else: tile.new_n.append('S')
+
+            tile_to_place.x = tile.x
+            tile_to_place.y = tile.y - 1
+            tile_to_place.z = tile.z
+            tile_to_place.set_id()
             # tile.new_p = copy.copy(tile.previous)
 
         else: 
@@ -2829,6 +2942,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y + 1
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'N')
@@ -2878,6 +2996,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x + 1
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'E')
 
@@ -2924,6 +3047,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x - 1
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'W')
@@ -2972,6 +3100,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y - 1
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'S')
 
@@ -3019,6 +3152,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z + 1
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'U')
 
@@ -3065,6 +3203,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z - 1
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'D')
@@ -3443,6 +3586,11 @@ def copy_tile(tile, d, ps):
             if tile.new_n == None: tile.new_n = ['U']
             else: tile.new_n.append('U')
 
+            tile_to_place.x = tile.x
+            tile_to_place.y = tile.y
+            tile_to_place.z = tile.z + 1
+            tile_to_place.set_id()
+
         else: 
             adj_tile = tile.tile_to_U
             adj_tile.D = 'W'
@@ -3487,6 +3635,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y + 1
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'N')
@@ -3536,6 +3689,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x + 1
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'E')
 
@@ -3582,6 +3740,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x - 1
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'W')
@@ -3630,6 +3793,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y - 1
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'S')
 
@@ -3677,6 +3845,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z + 1
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'U')
 
@@ -3723,6 +3896,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z - 1
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'D')
@@ -4101,6 +4279,11 @@ def copy_tile(tile, d, ps):
             if tile.new_n == None: tile.new_n = ['D']
             else: tile.new_n.append('D')
 
+            tile_to_place.x = tile.x
+            tile_to_place.y = tile.y
+            tile_to_place.z = tile.z - 1
+            tile_to_place.set_id()
+
         else: 
             adj_tile = tile.tile_to_D
             adj_tile.U = 'W'
@@ -4145,6 +4328,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y + 1
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'N')
@@ -4194,6 +4382,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x + 1
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'E')
 
@@ -4240,6 +4433,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x - 1
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'W')
@@ -4288,6 +4486,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y - 1
+                        tile_to_place.z = tile.z
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'S')
 
@@ -4335,6 +4538,11 @@ def copy_tile(tile, d, ps):
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
 
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z + 1
+                        tile_to_place.set_id()
+
                     else: 
                         neighbor = retrieve_tile(tile, 'U')
 
@@ -4381,6 +4589,11 @@ def copy_tile(tile, d, ps):
 
                         tile_to_place.new_n = copy.deepcopy(tile_to_place.next)
                         tile_to_place.new_p = copy.deepcopy(tile_to_place.previous)
+
+                        tile_to_place.x = tile.x
+                        tile_to_place.y = tile.y
+                        tile_to_place.z = tile.z - 1
+                        tile_to_place.set_id()
 
                     else: 
                         neighbor = retrieve_tile(tile, 'D')
