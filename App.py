@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QThread, QObject, Signal, QEvent
 from PySide6.QtGui import QShortcut, QKeySequence
 from collections import deque
-from Utils import *
+from Simulation import *
 
 MAX_SIM_SIZE = 1_000_000
 
