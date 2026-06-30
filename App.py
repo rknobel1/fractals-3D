@@ -1366,6 +1366,7 @@ class GeneratorBuilderWindow(QMainWindow):
 
         self.step_index += 1
         self.update_step_buttons()
+        self.plotter.reset_camera()
         self.plotter.render()
 
     def previous_step(self):
@@ -1386,6 +1387,7 @@ class GeneratorBuilderWindow(QMainWindow):
             self.remove_cube(tile)
 
         self.update_step_buttons()
+        self.plotter.reset_camera()
         self.plotter.render()
 
     def toggle_step_play(self):
