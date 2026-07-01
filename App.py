@@ -1408,29 +1408,66 @@ class GeneratorBuilderWindow(QMainWindow):
 
         snapshot = self.step_snapshots[self.step_index]
 
-        # Redraw previous snapshot cubes if any
-        if self.step_index > 0: 
-            previous_snapshot = self.step_snapshots[self.step_index - 1]
+        if snapshot["type"] == "attachment":
+            # Redraw previous snapshot cubes if any
+            if self.step_index > 0: 
+                previous_snapshot = self.step_snapshots[self.step_index - 1]
 
-            previously_placed_tile = previous_snapshot["placed_tile"]
-            previously_placing_tile = previous_snapshot["placing_tile"]
+                if previous_snapshot["type"] == "attachment":
+                    previously_placed_tile = previous_snapshot["placed_tile"]
+                    previously_placing_tile = previous_snapshot["placing_tile"]
 
-            self.redraw_cube_in_scene(previously_placed_tile)
-            self.redraw_cube_in_scene(previously_placing_tile)
+                    self.redraw_cube_in_scene(previously_placed_tile)
+                    self.redraw_cube_in_scene(previously_placing_tile)
 
-        # Update current snapshot
-        placed_tile = snapshot["placed_tile"]
-        placing_tile = snapshot["placing_tile"]
-        
-        placed_tile_coords = self.get_tile_coords(placed_tile)
-        if placed_tile_coords not in self.step_tiles:
-            self.step_tiles.add(placed_tile_coords)
-            actor = self.add_cube(placed_tile_coords, color="lightblue", opacity=1.0)
-            actor.GetProperty().SetEdgeColor(1, 0, 1)
-            actor.GetProperty().SetLineWidth(5)
-            self.tile_actors[placed_tile_coords] = actor
+                elif previous_snapshot["type"] == "transition":
+                    previous_cur_tile_before, previous_adj_tile_before = previous_snapshot["before"]
+                    previous_cur_tile_after, previous_adj_tile_after = previous_snapshot["after"]
+                    previous_explanation = previous_snapshot["explanation"]
 
-        self.redraw_cube_in_scene(placing_tile, current=True)
+                    self.redraw_cube_in_scene(previous_cur_tile_after)
+                    self.redraw_cube_in_scene(previous_adj_tile_after)
+
+            # Update current snapshot
+            placed_tile = snapshot["placed_tile"]
+            placing_tile = snapshot["placing_tile"]
+            
+            placed_tile_coords = self.get_tile_coords(placed_tile)
+            if placed_tile_coords not in self.step_tiles:
+                self.step_tiles.add(placed_tile_coords)
+                actor = self.add_cube(placed_tile_coords, color="lightblue", opacity=1.0)
+                actor.GetProperty().SetEdgeColor(1, 0, 1)
+                actor.GetProperty().SetLineWidth(5)
+                self.tile_actors[placed_tile_coords] = actor
+
+            self.redraw_cube_in_scene(placing_tile, current=True)
+
+        elif snapshot["type"] == "transition":
+            # Redraw previous snapshot cubes if any
+            if self.step_index > 0: 
+                previous_snapshot = self.step_snapshots[self.step_index - 1]
+
+                if previous_snapshot["type"] == "attachment":
+                    previously_placed_tile = previous_snapshot["placed_tile"]
+                    previously_placing_tile = previous_snapshot["placing_tile"]
+
+                    self.redraw_cube_in_scene(previously_placed_tile)
+                    self.redraw_cube_in_scene(previously_placing_tile)
+
+                elif previous_snapshot["type"] == "transition":
+                    previous_cur_tile_before, previous_adj_tile_before = previous_snapshot["before"]
+                    previous_cur_tile_after, previous_adj_tile_after = previous_snapshot["after"]
+                    previous_explanation = previous_snapshot["explanation"]
+
+                    self.redraw_cube_in_scene(previous_cur_tile_after)
+                    self.redraw_cube_in_scene(previous_adj_tile_after)
+
+            cur_tile_before, adj_tile_before = snapshot["before"]
+            cur_tile_after, adj_tile_after = snapshot["after"]
+            explanation = snapshot["explanation"]
+
+            self.redraw_cube_in_scene(cur_tile_after, current=True)
+            self.redraw_cube_in_scene(adj_tile_after, current=True)
 
         self.step_index += 1
         self.update_step_buttons()
@@ -1449,27 +1486,64 @@ class GeneratorBuilderWindow(QMainWindow):
         self.step_index -= 1
         snapshot = self.step_snapshots[self.step_index]
 
-        # Undo current snapshot
-        placed_tile = snapshot["placed_tile"]
-        placing_tile = snapshot["placing_tile"]
-        
-        placed_tile_coords = self.get_tile_coords(placed_tile)
+        if snapshot["type"] == "attachment":
+            # Undo current snapshot
+            placed_tile = snapshot["placed_tile"]
+            placing_tile = snapshot["placing_tile"]
+            
+            placed_tile_coords = self.get_tile_coords(placed_tile)
 
-        if placed_tile_coords in self.step_tiles:
-            self.step_tiles.remove(placed_tile_coords)
-            self.remove_cube(placed_tile_coords)
+            if placed_tile_coords in self.step_tiles:
+                self.step_tiles.remove(placed_tile_coords)
+                self.remove_cube(placed_tile_coords)
 
-        self.redraw_cube_in_scene(placing_tile)
+            self.redraw_cube_in_scene(placing_tile)
 
-        # Redraw next (going in reverse) snapshot cubes if any
-        if self.step_index > 0: 
-            previous_snapshot = self.step_snapshots[self.step_index - 1]
+            # Redraw previous snapshot cubes if any
+            if self.step_index > 0: 
+                previous_snapshot = self.step_snapshots[self.step_index - 1]
 
-            previously_placed_tile = previous_snapshot["placed_tile"]
-            previously_placing_tile = previous_snapshot["placing_tile"]
+                if previous_snapshot["type"] == "attachment":
+                    previously_placed_tile = previous_snapshot["placed_tile"]
+                    previously_placing_tile = previous_snapshot["placing_tile"]
 
-            self.redraw_cube_in_scene(previously_placed_tile, current=True, placed=True)
-            self.redraw_cube_in_scene(previously_placing_tile, current=True)
+                    self.redraw_cube_in_scene(previously_placed_tile, current=True, placed=True)
+                    self.redraw_cube_in_scene(previously_placing_tile, current=True)
+
+                elif previous_snapshot["type"] == "transition":
+                    previous_cur_tile_before, previous_adj_tile_before = previous_snapshot["before"]
+                    previous_cur_tile_after, previous_adj_tile_after = previous_snapshot["after"]
+                    previous_explanation = previous_snapshot["explanation"]
+
+                    self.redraw_cube_in_scene(previous_cur_tile_after, current=True)
+                    self.redraw_cube_in_scene(previous_adj_tile_after, current=True)
+
+        elif snapshot["type"] == "transition":
+            cur_tile_before, adj_tile_before = snapshot["before"]
+            cur_tile_after, adj_tile_after = snapshot["after"]
+            explanation = snapshot["explanation"]
+
+            self.redraw_cube_in_scene(cur_tile_before)
+            self.redraw_cube_in_scene(adj_tile_before)
+
+            # Redraw previous snapshot cubes if any
+            if self.step_index > 0: 
+                previous_snapshot = self.step_snapshots[self.step_index - 1]
+
+                if previous_snapshot["type"] == "attachment":
+                    previously_placed_tile = previous_snapshot["placed_tile"]
+                    previously_placing_tile = previous_snapshot["placing_tile"]
+
+                    self.redraw_cube_in_scene(previously_placed_tile, current=True, placed=True)
+                    self.redraw_cube_in_scene(previously_placing_tile, current=True)
+
+                elif previous_snapshot["type"] == "transition":
+                    previous_cur_tile_before, previous_adj_tile_before = previous_snapshot["before"]
+                    previous_cur_tile_after, previous_adj_tile_after = previous_snapshot["after"]
+                    previous_explanation = previous_snapshot["explanation"]
+
+                    self.redraw_cube_in_scene(previous_cur_tile_after, current=True)
+                    self.redraw_cube_in_scene(previous_adj_tile_after, current=True)
 
         self.update_step_buttons()
         self.plotter.reset_camera()

@@ -44,6 +44,39 @@ def record_tile_placement(placed_tile, placing_tile):
         "placing_tile": _tile_snapshot(placing_tile),
     })
 
+def record_transition_snapshots(before_tile_1, before_tile_2, after_tile_1, after_tile_2, explanation):
+    if _step_snapshots is None:
+        return
+
+    _step_snapshots.append({
+        "type": "transition",
+        "before": [before_tile_1, before_tile_2],
+        "after": [after_tile_1, after_tile_2],
+        "explanation": explanation
+    })
+
+def record_transition(before_tile_1, before_tile_2,
+                      after_tile_1, after_tile_2):
+    if _step_snapshots is None:
+        return
+
+    # Both tiles should already exist in the assembly.
+    if (before_tile_1.x is None or before_tile_2.x is None or
+        after_tile_1.x is None or after_tile_2.x is None):
+        return
+
+    _step_snapshots.append({
+        "type": "transition",
+        "before": [
+            _tile_snapshot(before_tile_1),
+            _tile_snapshot(before_tile_2),
+        ],
+        "after": [
+            _tile_snapshot(after_tile_1),
+            _tile_snapshot(after_tile_2),
+        ],
+    })
+
 class Tile():
 
     def __init__(self, p, n, x=None, y=None, z=None):
@@ -310,28 +343,35 @@ def choose_copy_direction(tile, direction, cancel_callback=None):
     t = []
 
     while len(stack) > 0:
-        _raise_if_cancelled(cancel_callback)
         cur_tile = stack.pop()
 
         if cur_tile.next != None:
             for neighbor in cur_tile.next:
-                _raise_if_cancelled(cancel_callback)
                 if retrieve_tile(cur_tile, neighbor) not in visited_tiles and retrieve_tile(cur_tile, neighbor) != None:
                     adj_tile = retrieve_tile(cur_tile, neighbor)
                     stack.append(adj_tile)
 
+                    before_a, before_b = _tile_snapshot(cur_tile), _tile_snapshot(adj_tile)
+
                     copy_direction_update_tiles(cur_tile, direction)
                     copy_direction_update_tiles(adj_tile, direction)
+
+                    after_a, after_b = _tile_snapshot(cur_tile), _tile_snapshot(adj_tile)
+                    record_transition_snapshots(before_a, before_b, after_a, after_b, "Propagating copy direction")
 
         if cur_tile.previous != None:
             for neighbor in cur_tile.previous:
-                _raise_if_cancelled(cancel_callback)
                 if retrieve_tile(cur_tile, neighbor) not in visited_tiles and retrieve_tile(cur_tile, neighbor) != None:
                     adj_tile = retrieve_tile(cur_tile, neighbor)
                     stack.append(adj_tile)
 
+                    before_a, before_b = _tile_snapshot(cur_tile), _tile_snapshot(adj_tile)
+
                     copy_direction_update_tiles(cur_tile, direction)
                     copy_direction_update_tiles(adj_tile, direction)
+
+                    after_a, after_b = _tile_snapshot(cur_tile), _tile_snapshot(adj_tile)
+                    record_transition_snapshots(before_a, before_b, after_a, after_b, "Propagating copy direction")
 
         if cur_tile.terminal:
             t.append(cur_tile)
@@ -340,14 +380,14 @@ def choose_copy_direction(tile, direction, cancel_callback=None):
 
     # All tiles are marked with copying direction, retrace back to original/pseudo seed
     while len(t) > 0:
-        _raise_if_cancelled(cancel_callback)
         cur_tile = t.pop()
 
         if cur_tile.next != None:
             for neighbor in cur_tile.next:
-                _raise_if_cancelled(cancel_callback)
                 if len(retrieve_tile(cur_tile, neighbor).copy_direction) > 1:
                     adj_tile = retrieve_tile(cur_tile, neighbor)
+
+                    before_a, before_b = _tile_snapshot(cur_tile), _tile_snapshot(adj_tile)
 
                     l = list(adj_tile.copy_direction)
 
@@ -356,16 +396,21 @@ def choose_copy_direction(tile, direction, cancel_callback=None):
                     if l[1] == 0:
                         adj_tile.copy_direction = l[0]
                         t.append(adj_tile)
+                        after_a, after_b = _tile_snapshot(cur_tile), _tile_snapshot(adj_tile)
+                        record_transition_snapshots(before_a, before_b, after_a, after_b, "Retrace to Original/Pseudo Seed")
                     else:
                         l[1] = str(l[1])
                         adj_tile.copy_direction = "".join(l)
+                        after_a, after_b = _tile_snapshot(cur_tile), _tile_snapshot(adj_tile)
+                        record_transition_snapshots(before_a, before_b, after_a, after_b, "Retrace to Original/Pseudo Seed")
                         break
 
         if cur_tile.previous != None:
             for neighbor in cur_tile.previous:
-                _raise_if_cancelled(cancel_callback)
                 if len(retrieve_tile(cur_tile, neighbor).copy_direction) > 1:
                     adj_tile = retrieve_tile(cur_tile, neighbor)
+
+                    before_a, before_b = _tile_snapshot(cur_tile), _tile_snapshot(adj_tile)
 
                     l = list(adj_tile.copy_direction)
 
@@ -374,9 +419,13 @@ def choose_copy_direction(tile, direction, cancel_callback=None):
                     if l[1] == 0:
                         adj_tile.copy_direction = l[0]
                         t.append(adj_tile)
+                        after_a, after_b = _tile_snapshot(cur_tile), _tile_snapshot(adj_tile)
+                        record_transition_snapshots(before_a, before_b, after_a, after_b, "Retrace to Original/Pseudo Seed")
                     else:
                         l[1] = str(l[1])
                         adj_tile.copy_direction = "".join(l)
+                        after_a, after_b = _tile_snapshot(cur_tile), _tile_snapshot(adj_tile)
+                        record_transition_snapshots(before_a, before_b, after_a, after_b, "Retrace to Original/Pseudo Seed")
                         break
 
     return
