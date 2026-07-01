@@ -723,6 +723,7 @@ class GeneratorBuilderWindow(QMainWindow):
             self.redraw_scene()
 
         elif self.mode in ("display_result", "step_result"):
+            self.restore_layer_button_connections()
             self.restore_stage_selection_after_simulation()
             self.redraw_scene()
 
