@@ -398,6 +398,7 @@ class GeneratorBuilderWindow(QMainWindow):
         self.draw_active_layer_grid()
         self.draw_all_cubes()
 
+        self.plotter.reset_camera()
         self.plotter.render()
 
     # UTILS
