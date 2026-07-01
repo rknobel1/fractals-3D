@@ -759,6 +759,8 @@ class GeneratorBuilderWindow(QMainWindow):
         self.next_btn.setText("Next Layer")
         self.layer_label.setText(f"Current Layer: Z = {self.current_layer}")
 
+        self.prev_btn.show()
+        self.next_btn.show()
         self.update_layer_buttons()
         self.warning_label.hide()
         self.redraw_scene()
@@ -1340,6 +1342,13 @@ class GeneratorBuilderWindow(QMainWindow):
         self.play_btn.setText("Play")
         self.play_btn.setEnabled(len(self.step_snapshots) > 0)
 
+        self.stage_label.hide()
+        self.stage_combo.hide()
+        self.sim_mode_label.hide()
+        self.regular_sim_radio.hide()
+        self.step_sim_radio.hide()
+        self.run_btn.hide()
+
         self.layer_label.setText(
             f"Step simulation ready — 0 / {len(self.step_snapshots)}"
         )
@@ -1458,9 +1467,14 @@ class GeneratorBuilderWindow(QMainWindow):
 
         self.prev_btn.setText("Previous Layer")
         self.next_btn.setText("Next Layer")
-        self.prev_btn.setEnabled(False)
-        self.next_btn.setEnabled(False)
-
+        self.prev_btn.hide()
+        self.next_btn.hide()
+        self.stage_label.hide()
+        self.stage_combo.hide()
+        self.sim_mode_label.hide()
+        self.regular_sim_radio.hide()
+        self.step_sim_radio.hide()
+        self.run_btn.hide()
         self.plotter.reset_camera()
         self.plotter.render()
 
@@ -1484,6 +1498,8 @@ class GeneratorBuilderWindow(QMainWindow):
         self.next_btn.setText("Next Layer")
         self.set_running_state(False)
         self.update_back_button()
+        self.prev_btn.show()
+        self.next_btn.show()
         self.update_simulation_warning()
 
         if message is None:
