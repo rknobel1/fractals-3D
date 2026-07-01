@@ -1271,8 +1271,8 @@ class GeneratorBuilderWindow(QMainWindow):
         
         return mesh
 
-    def _snapshot_coord(self, snapshot):
-        tile = snapshot.get("tile", snapshot)
+    @staticmethod
+    def get_tile_coords(tile):
         return (tile["x"], tile["y"], tile["z"])
 
     def draw_step_cubes(self):
@@ -1366,12 +1366,17 @@ class GeneratorBuilderWindow(QMainWindow):
             return
 
         snapshot = self.step_snapshots[self.step_index]
-        tile = self._snapshot_coord(snapshot)
 
-        if tile not in self.step_tiles:
-            self.step_tiles.add(tile)
-            actor = self.add_cube(tile, color="lightblue", opacity=1.0)
-            self.tile_actors[tile] = actor
+        placed_tile = snapshot["placed_tile"]
+        placing_tile = snapshot["placing_tile"]
+        
+        placed_tile_coords = self.get_tile_coords(placed_tile)
+        placing_tile_coords = self.get_tile_coords(placing_tile)
+
+        if placed_tile_coords not in self.step_tiles:
+            self.step_tiles.add(placed_tile_coords)
+            actor = self.add_cube(placed_tile_coords, color="lightblue", opacity=1.0)
+            self.tile_actors[placed_tile_coords] = actor
 
         self.step_index += 1
         self.update_step_buttons()
@@ -1389,11 +1394,16 @@ class GeneratorBuilderWindow(QMainWindow):
 
         self.step_index -= 1
         snapshot = self.step_snapshots[self.step_index]
-        tile = self._snapshot_coord(snapshot)
 
-        if tile in self.step_tiles:
-            self.step_tiles.remove(tile)
-            self.remove_cube(tile)
+        placed_tile = snapshot["placed_tile"]
+        placing_tile = snapshot["placing_tile"]
+        
+        placed_tile_coords = self.get_tile_coords(placed_tile)
+        placing_tile_coords = self.get_tile_coords(placing_tile)
+
+        if placed_tile_coords in self.step_tiles:
+            self.step_tiles.remove(placed_tile_coords)
+            self.remove_cube(placed_tile_coords)
 
         self.update_step_buttons()
         self.plotter.reset_camera()
