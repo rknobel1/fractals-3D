@@ -1297,6 +1297,17 @@ class GeneratorBuilderWindow(QMainWindow):
         self.draw_step_cubes()
         self.plotter.render()
 
+    def redraw_cube_in_scene(self, tile, current=False):
+        tile_coords = self.get_tile_coords(tile)
+
+        tile_actor = self.tile_actors[tile_coords]
+        if current:
+            tile_actor.GetProperty().SetColor(1.0, 0.8, 0.0)
+        else: 
+            tile_actor.GetProperty().SetColor(0.68, 0.85, 0.90)
+
+        self.plotter.render()
+
     def update_step_buttons(self):
         if self.playing_steps:
             self.prev_btn.setEnabled(False)
@@ -1367,16 +1378,27 @@ class GeneratorBuilderWindow(QMainWindow):
 
         snapshot = self.step_snapshots[self.step_index]
 
+        # Redraw previous snapshot cubes if any
+        if self.step_index > 0: 
+            previous_snapshot = self.step_snapshots[self.step_index - 1]
+
+            previously_placed_tile = previous_snapshot["placed_tile"]
+            previously_placing_tile = previous_snapshot["placing_tile"]
+
+            self.redraw_cube_in_scene(previously_placed_tile)
+            self.redraw_cube_in_scene(previously_placing_tile)
+
+        # Update current snapshot
         placed_tile = snapshot["placed_tile"]
         placing_tile = snapshot["placing_tile"]
         
         placed_tile_coords = self.get_tile_coords(placed_tile)
-        placing_tile_coords = self.get_tile_coords(placing_tile)
-
         if placed_tile_coords not in self.step_tiles:
             self.step_tiles.add(placed_tile_coords)
             actor = self.add_cube(placed_tile_coords, color="lightblue", opacity=1.0)
             self.tile_actors[placed_tile_coords] = actor
+
+        self.redraw_cube_in_scene(placing_tile, current=True)
 
         self.step_index += 1
         self.update_step_buttons()
@@ -1395,15 +1417,27 @@ class GeneratorBuilderWindow(QMainWindow):
         self.step_index -= 1
         snapshot = self.step_snapshots[self.step_index]
 
+        # Undo current snapshot
         placed_tile = snapshot["placed_tile"]
         placing_tile = snapshot["placing_tile"]
         
         placed_tile_coords = self.get_tile_coords(placed_tile)
-        placing_tile_coords = self.get_tile_coords(placing_tile)
 
         if placed_tile_coords in self.step_tiles:
             self.step_tiles.remove(placed_tile_coords)
             self.remove_cube(placed_tile_coords)
+
+        self.redraw_cube_in_scene(placing_tile)
+
+        # Redraw next (going in reverse) snapshot cubes if any
+        if self.step_index > 0: 
+            previous_snapshot = self.step_snapshots[self.step_index - 1]
+
+            previously_placed_tile = previous_snapshot["placed_tile"]
+            previously_placing_tile = previous_snapshot["placing_tile"]
+
+            self.redraw_cube_in_scene(previously_placed_tile)
+            self.redraw_cube_in_scene(previously_placing_tile, current=True)
 
         self.update_step_buttons()
         self.plotter.reset_camera()
