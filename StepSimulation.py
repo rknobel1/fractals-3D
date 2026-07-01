@@ -17,15 +17,18 @@ def get_tag(x, y, z):
 # Step-mode snapshot recording. This is enabled only while run_step_simulation runs.
 _step_snapshots = None
 
+def _serialize_tile_value(value):
+    if isinstance(value, Tile):
+        return value.id
+
+    return value
+
+
 def _tile_snapshot(tile):
     return {
-        "id": tile.id,
-        "x": tile.x,
-        "y": tile.y,
-        "z": tile.z,
-        "terminal": tile.terminal,
-        "original_seed": tile.original_seed,
-        "pseudo_seed": tile.pseudo_seed,
+        key: _serialize_tile_value(value)
+        for key, value in vars(tile).items()
+        if not key.startswith("_")
     }
 
 def record_tile_placement(placed_tile, placing_tile):

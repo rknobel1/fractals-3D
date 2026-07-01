@@ -1302,9 +1302,11 @@ class GeneratorBuilderWindow(QMainWindow):
 
         tile_actor = self.tile_actors[tile_coords]
         if current:
-            tile_actor.GetProperty().SetColor(1.0, 0.8, 0.0)
+            tile_actor.GetProperty().SetEdgeColor(1.0, 0.0, 1.0)
+            tile_actor.GetProperty().SetLineWidth(5)
         else: 
-            tile_actor.GetProperty().SetColor(0.68, 0.85, 0.90)
+            tile_actor.GetProperty().SetEdgeColor(0, 0, 0)
+            tile_actor.GetProperty().SetLineWidth(1)
 
         self.plotter.render()
 
@@ -1396,6 +1398,8 @@ class GeneratorBuilderWindow(QMainWindow):
         if placed_tile_coords not in self.step_tiles:
             self.step_tiles.add(placed_tile_coords)
             actor = self.add_cube(placed_tile_coords, color="lightblue", opacity=1.0)
+            actor.GetProperty().SetEdgeColor(1, 0, 1)
+            actor.GetProperty().SetLineWidth(5)
             self.tile_actors[placed_tile_coords] = actor
 
         self.redraw_cube_in_scene(placing_tile, current=True)
@@ -1436,7 +1440,7 @@ class GeneratorBuilderWindow(QMainWindow):
             previously_placed_tile = previous_snapshot["placed_tile"]
             previously_placing_tile = previous_snapshot["placing_tile"]
 
-            self.redraw_cube_in_scene(previously_placed_tile)
+            self.redraw_cube_in_scene(previously_placed_tile, current=True)
             self.redraw_cube_in_scene(previously_placing_tile, current=True)
 
         self.update_step_buttons()
