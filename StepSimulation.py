@@ -469,29 +469,33 @@ def hard_reset(cancel_callback=None):
     _raise_if_cancelled(cancel_callback)
 
     while len(hard_reset_tiles) > 0:
-        _raise_if_cancelled(cancel_callback)
 
         ct = hard_reset_tiles.pop()
-        update_prev_next(ct)
-
         # Retrieve adjacent tile
-        adj_tile = retrieve_tile(ct, ct.previous[0])
+        adj_tile = retrieve_tile(ct, ct.new_p[0])
+
+        before_a, before_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
+        update_prev_next(ct)
         update_prev_next(adj_tile)
+        after_a, after_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
+        record_transition_snapshots(before_a, before_b, after_a, after_b, "Updating prev/next")
 
         # Start by first spreading hard reset if not yet done
         if adj_tile.copy_direction == 'r': 
+            before_a, before_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
             adj_tile.copy_direction = 'R?'
             t = [adj_tile]
             update_prev_next(adj_tile)
+            after_a, after_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
+            record_transition_snapshots(before_a, before_b, after_a, after_b, "Propagating hard reset signal")
 
             while len(t) > 0:
-                _raise_if_cancelled(cancel_callback)
                 cur = t.pop()
 
                 if cur.next != None: 
                     for neighbor in cur.next:
-                        _raise_if_cancelled(cancel_callback)
                         a = retrieve_tile(cur, neighbor)
+                        before_a, before_b = _tile_snapshot(cur), _tile_snapshot(a)
                         update_prev_next(a)
                         if a != None and (a.copy_direction == 'r'):
                             if a.next == None: 
@@ -499,11 +503,24 @@ def hard_reset(cancel_callback=None):
                                 hard_reset_tiles.append(a)
                             else: a.copy_direction = 'R?'
                             t.append(a)
+
+                        cur.key_tile_N = '*'
+                        cur.key_tile_E = '*'
+                        cur.key_tile_W = '*'
+                        cur.key_tile_S = '*'
+                        cur.key_tile_U = '*'
+                        cur.key_tile_D = '*'
+
+                        if num_next(cur) == 0: cur.copy_direction = 'R'
+                        else: cur.copy_direction = 'R' + str(num_next(cur))
+
+                        after_a, after_b = _tile_snapshot(cur), _tile_snapshot(a)
+                        record_transition_snapshots(before_a, before_b, after_a, after_b, "Propagating hard reset signal")
 
                 if cur.previous != None: 
                     for neighbor in cur.previous:
-                        _raise_if_cancelled(cancel_callback)
                         a = retrieve_tile(cur, neighbor)
+                        before_a, before_b = _tile_snapshot(cur), _tile_snapshot(a)
                         update_prev_next(a)
                         if a != None and (a.copy_direction == 'r'):
                             if a.next == None: 
@@ -511,20 +528,27 @@ def hard_reset(cancel_callback=None):
                                 hard_reset_tiles.append(a)
                             else: a.copy_direction = 'R?'
                             t.append(a)
-                
-                cur.key_tile_N = '*'
-                cur.key_tile_E = '*'
-                cur.key_tile_W = '*'
-                cur.key_tile_S = '*'
-                cur.key_tile_U = '*'
-                cur.key_tile_D = '*'
 
-                if num_next(cur) == 0: cur.copy_direction = 'R'
-                else: cur.copy_direction = 'R' + str(num_next(cur))
+                        cur.key_tile_N = '*'
+                        cur.key_tile_E = '*'
+                        cur.key_tile_W = '*'
+                        cur.key_tile_S = '*'
+                        cur.key_tile_U = '*'
+                        cur.key_tile_D = '*'
 
+                        if num_next(cur) == 0: cur.copy_direction = 'R'
+                        else: cur.copy_direction = 'R' + str(num_next(cur))
+
+                        after_a, after_b = _tile_snapshot(cur), _tile_snapshot(a)
+                        record_transition_snapshots(before_a, before_b, after_a, after_b, "Propagating hard reset signal")
+
+        before_a, before_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
         # Resetting tile
         reset_tile(ct)
+        after_a, after_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
+        record_transition_snapshots(before_a, before_b, after_a, after_b, "Hard resetting")
 
+        before_a, before_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
         # Not at seed yet
         if not adj_tile.original_seed: 
             
@@ -718,6 +742,9 @@ def hard_reset(cancel_callback=None):
             else: 
                 l[1] = str(l[1])
                 adj_tile.copy_direction = "".join(l)
+
+        after_a, after_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
+        record_transition_snapshots(before_a, before_b, after_a, after_b, "Update key tile directions")
 
 # RETURNS: bool for whether caps on tile should be moved
 def move_caps(tile): 
