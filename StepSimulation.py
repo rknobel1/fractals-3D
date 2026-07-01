@@ -5372,32 +5372,26 @@ def copy_assembly(tile, d, cancel_callback=None):
     if d == "N":
         pseudo_seed = tile.tile_to_N
         while tile.key_tile_S != None:
-            _raise_if_cancelled(cancel_callback)
             tile = retrieve_tile(tile, tile.key_tile_S[0])
     if d == "E":
         pseudo_seed = tile.tile_to_E
         while tile.key_tile_W != None:
-            _raise_if_cancelled(cancel_callback)
             tile = retrieve_tile(tile, tile.key_tile_W[0])
     if d == "W":
         pseudo_seed = tile.tile_to_W
         while tile.key_tile_E != None:
-            _raise_if_cancelled(cancel_callback)
             tile = retrieve_tile(tile, tile.key_tile_E[0])
     if d == "S":
         pseudo_seed = tile.tile_to_S
         while tile.key_tile_N != None:
-            _raise_if_cancelled(cancel_callback)
             tile = retrieve_tile(tile, tile.key_tile_N[0])
     if d == "U":
         pseudo_seed = tile.tile_to_U
         while tile.key_tile_D != None:
-            _raise_if_cancelled(cancel_callback)
             tile = retrieve_tile(tile, tile.key_tile_D[0])
     if d == "D":
         pseudo_seed = tile.tile_to_D
         while tile.key_tile_U != None:
-            _raise_if_cancelled(cancel_callback)
             tile = retrieve_tile(tile, tile.key_tile_U[0])
 
     starting_tile = tile
@@ -5413,6 +5407,7 @@ def copy_assembly(tile, d, cancel_callback=None):
         if num_dirs(tile) == 1 and not tile.original_seed and not tile.pseudo_seed and tile != starting_tile:
             if tile.previous != None: 
                 adj_tile = retrieve_tile(tile, tile.previous[0])
+                before_a, before_b = _tile_snapshot(tile), _tile_snapshot(adj_tile)
                 if tile.previous[0] == 'N': 
                     tile.N = 'Y'
                     adj_tile.S = 'Y'
@@ -5432,9 +5427,12 @@ def copy_assembly(tile, d, cancel_callback=None):
                     tile.D = 'Y'
                     adj_tile.U = 'Y'
 
+                after_a, after_b = _tile_snapshot(tile), _tile_snapshot(adj_tile)
+                record_transition_snapshots(before_a, before_b, after_a, after_b, "Find next tile to place")
                 tile = adj_tile
             elif tile.next != None: 
                 adj_tile = retrieve_tile(tile, tile.next[0])
+                before_a, before_b = _tile_snapshot(tile), _tile_snapshot(adj_tile)
 
                 if tile.next[0] == 'N': 
                     tile.N = 'Y'
@@ -5455,46 +5453,65 @@ def copy_assembly(tile, d, cancel_callback=None):
                     tile.D = 'Y'
                     adj_tile.U = 'Y'
 
+                after_a, after_b = _tile_snapshot(tile), _tile_snapshot(adj_tile)
+                record_transition_snapshots(before_a, before_b, after_a, after_b, "Find next tile to place")
                 tile = adj_tile
 
             while directions_missing(tile) == 0:
-                _raise_if_cancelled(cancel_callback)
                 
                 # Update tile and adjacent tile, then repeat
                 if tile.tile_to_S != None and directions_missing(tile.tile_to_S) > 0 and ((tile.next != None and 'S' in tile.next) or (tile.previous != None and 'S' in tile.previous)):
                     adjacent_tile = tile.tile_to_S
+                    before_a, before_b = _tile_snapshot(tile), _tile_snapshot(adj_tile)
                     adjacent_tile.N = 'Y'
+                    after_a, after_b = _tile_snapshot(tile), _tile_snapshot(adj_tile)
+                    record_transition_snapshots(before_a, before_b, after_a, after_b, "Find next tile to place")
 
                     tile = adjacent_tile
 
                 elif tile.tile_to_W != None and directions_missing(tile.tile_to_W) > 0 and ((tile.next != None and 'W' in tile.next) or (tile.previous != None and 'W' in tile.previous)):
                     
                     adjacent_tile = tile.tile_to_W
+                    before_a, before_b = _tile_snapshot(tile), _tile_snapshot(adj_tile)
                     adjacent_tile.E = 'Y'
+                    after_a, after_b = _tile_snapshot(tile), _tile_snapshot(adj_tile)
+                    record_transition_snapshots(before_a, before_b, after_a, after_b, "Find next tile to place")
 
                     tile = adjacent_tile
 
                 elif tile.tile_to_E != None and directions_missing(tile.tile_to_E) > 0 and ((tile.next != None and 'E' in tile.next) or (tile.previous != None and 'E' in tile.previous)):
                     adjacent_tile = tile.tile_to_E
+                    before_a, before_b = _tile_snapshot(tile), _tile_snapshot(adj_tile)
                     adjacent_tile.W = 'Y'
+                    after_a, after_b = _tile_snapshot(tile), _tile_snapshot(adj_tile)
+                    record_transition_snapshots(before_a, before_b, after_a, after_b, "Find next tile to place")
                     
                     tile = adjacent_tile
 
                 elif tile.tile_to_N != None and directions_missing(tile.tile_to_N) > 0 and ((tile.next != None and 'N' in tile.next) or (tile.previous != None and 'N' in tile.previous)):
                     adjacent_tile = tile.tile_to_N
+                    before_a, before_b = _tile_snapshot(tile), _tile_snapshot(adj_tile)
                     adjacent_tile.S = 'Y'
+                    after_a, after_b = _tile_snapshot(tile), _tile_snapshot(adj_tile)
+                    record_transition_snapshots(before_a, before_b, after_a, after_b, "Find next tile to place")
                     
                     tile = adjacent_tile
 
                 elif tile.tile_to_D != None and directions_missing(tile.tile_to_D) > 0 and ((tile.next != None and 'D' in tile.next) or (tile.previous != None and 'D' in tile.previous)):
                     adjacent_tile = tile.tile_to_D
+                    before_a, before_b = _tile_snapshot(tile), _tile_snapshot(adj_tile)
                     adjacent_tile.U = 'Y'
+                    after_a, after_b = _tile_snapshot(tile), _tile_snapshot(adj_tile)
+                    record_transition_snapshots(before_a, before_b, after_a, after_b, "Find next tile to place")
                     
                     tile = adjacent_tile
 
                 elif tile.tile_to_U != None and directions_missing(tile.tile_to_U) > 0 and ((tile.next != None and 'U' in tile.next) or (tile.previous != None and 'U' in tile.previous)):
                     adjacent_tile = tile.tile_to_U
+                    before_a, before_b = _tile_snapshot(tile), _tile_snapshot(adj_tile)
                     adjacent_tile.D = 'Y'
+                    after_a, after_b = _tile_snapshot(tile), _tile_snapshot(adj_tile)
+                    record_transition_snapshots(before_a, before_b, after_a, after_b, "Find next tile to place")
                     
                     tile = adjacent_tile
                 
@@ -5502,33 +5519,51 @@ def copy_assembly(tile, d, cancel_callback=None):
 
         if tile.status == 'P': pass
         elif tile.tile_to_N != None and retrieve_tile(tile, 'N').status == 'P' and ((tile.next != None and 'N' in tile.next) or (tile.previous != None and 'N' in tile.previous)): 
+            before_a, before_b = _tile_snapshot(tile), _tile_snapshot(retrieve_tile(tile, 'N'))
             # Check if in next or previous
             tile = retrieve_tile(tile, 'N')
             tile.S = 'Y'
+            after_b = _tile_snapshot(tile)
+            record_transition_snapshots(before_a, before_b, before_a, after_b, "Find next tile to place")
         elif tile.tile_to_E != None and retrieve_tile(tile, 'E').status == 'P' and ((tile.next != None and 'E' in tile.next) or (tile.previous != None and 'E' in tile.previous)): 
-            
+            before_a, before_b = _tile_snapshot(tile), _tile_snapshot(retrieve_tile(tile, 'E'))
+            # Check if in next or previous
             tile = retrieve_tile(tile, 'E')
             tile.W = 'Y'
+            after_b = _tile_snapshot(tile)
+            record_transition_snapshots(before_a, before_b, before_a, after_b, "Find next tile to place")
 
         elif tile.tile_to_W != None and retrieve_tile(tile, 'W').status == 'P' and ((tile.next != None and 'W' in tile.next) or (tile.previous != None and 'W' in tile.previous)): 
-
+            before_a, before_b = _tile_snapshot(tile), _tile_snapshot(retrieve_tile(tile, 'W'))
+            # Check if in next or previous
             tile = retrieve_tile(tile, 'W')
             tile.E = 'Y'
+            after_b = _tile_snapshot(tile)
+            record_transition_snapshots(before_a, before_b, before_a, after_b, "Find next tile to place")
 
         elif tile.tile_to_S != None and retrieve_tile(tile, 'S').status == 'P' and ((tile.next != None and 'S' in tile.next) or (tile.previous != None and 'S' in tile.previous)): 
-        
+            before_a, before_b = _tile_snapshot(tile), _tile_snapshot(retrieve_tile(tile, 'S'))
+            # Check if in next or previous
             tile = retrieve_tile(tile, 'S')
             tile.N = 'Y'
+            after_b = _tile_snapshot(tile)
+            record_transition_snapshots(before_a, before_b, before_a, after_b, "Find next tile to place")
 
         elif tile.tile_to_U != None and retrieve_tile(tile, 'U').status == 'P' and ((tile.next != None and 'U' in tile.next) or (tile.previous != None and 'U' in tile.previous)): 
-        
+            before_a, before_b = _tile_snapshot(tile), _tile_snapshot(retrieve_tile(tile, 'U'))
+            # Check if in next or previous
             tile = retrieve_tile(tile, 'U')
             tile.D = 'Y'
+            after_b = _tile_snapshot(tile)
+            record_transition_snapshots(before_a, before_b, before_a, after_b, "Find next tile to place")
 
         elif tile.tile_to_D != None and retrieve_tile(tile, 'D').status == 'P' and ((tile.next != None and 'D' in tile.next) or (tile.previous != None and 'D' in tile.previous)): 
-        
+            before_a, before_b = _tile_snapshot(tile), _tile_snapshot(retrieve_tile(tile, 'D'))
+            # Check if in next or previous
             tile = retrieve_tile(tile, 'D')
             tile.U = 'Y'
+            after_b = _tile_snapshot(tile)
+            record_transition_snapshots(before_a, before_b, before_a, after_b, "Find next tile to place")
             
         else: 
             break
@@ -5540,45 +5575,52 @@ def copy_assembly(tile, d, cancel_callback=None):
         t = [tile]
 
         while len(t) > 0:
-            _raise_if_cancelled(cancel_callback)
             ct = t.pop()
 
             if ct.copy_direction == '?':
                 if ct.next != None: 
                     for neighbor in ct.next:
-                        _raise_if_cancelled(cancel_callback)
                         adj_tile = retrieve_tile(ct, neighbor)
+                        before_a, before_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
                         if adj_tile != None:
                             adj_tile.copy_direction = '?' + opp(neighbor)
                             t.append(adj_tile)
+                        after_a, after_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
+                        record_transition_snapshots(before_a, before_b, after_a, after_b, "Finding pseudo seed")
 
                 if ct.previous != None: 
                     for neighbor in ct.previous:
-                        _raise_if_cancelled(cancel_callback)
                         adj_tile = retrieve_tile(ct, neighbor)
+                        before_a, before_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
                         if adj_tile != None:
                             adj_tile.copy_direction = '?' + opp(neighbor)
                             t.append(adj_tile)
+                        after_a, after_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
+                        record_transition_snapshots(before_a, before_b, after_a, after_b, "Finding pseudo seed")
 
             else: 
                 l = list(ct.copy_direction)
                 if ct.next != None: 
                     for neighbor in ct.next:
-                        _raise_if_cancelled(cancel_callback)
                         if neighbor != l[1]: 
                             adj_tile = retrieve_tile(ct, neighbor)
+                            before_a, before_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
                             if adj_tile != None:
                                 adj_tile.copy_direction = '?' + opp(neighbor)
                                 t.append(adj_tile)
+                            after_a, after_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
+                            record_transition_snapshots(before_a, before_b, after_a, after_b, "Finding pseudo seed")
 
                 if ct.previous != None: 
                     for neighbor in ct.previous:
-                        _raise_if_cancelled(cancel_callback)
                         if neighbor != l[1]: 
                             adj_tile = retrieve_tile(ct, neighbor)
+                            before_a, before_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
                             if adj_tile != None:
                                 adj_tile.copy_direction = '?' + opp(neighbor)
                                 t.append(adj_tile)
+                            after_a, after_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
+                            record_transition_snapshots(before_a, before_b, after_a, after_b, "Finding pseudo seed")
 
             if ct.pseudo_seed: 
                 ct.num_times_copied += 1
@@ -5598,33 +5640,46 @@ def copy_assembly(tile, d, cancel_callback=None):
         if r_tile != None:
             t = [r_tile]
             while len(t) > 0:
-                _raise_if_cancelled(cancel_callback)
                 ct = t.pop()
 
                 if ct.copy_direction == 'r?':
                     if ct.next != None: 
                         for neighbor in ct.next:
-                            _raise_if_cancelled(cancel_callback)
                             adj_tile = retrieve_tile(ct, neighbor)
+                            before_a, before_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
                             if adj_tile != None and adj_tile.copy_direction == None:
                                 adj_tile.copy_direction = 'r?'
                                 t.append(adj_tile)
+
+                            ct.key_tile_N = '*'
+                            ct.key_tile_E = '*'
+                            ct.key_tile_W = '*'
+                            ct.key_tile_S = '*'
+                            ct.key_tile_U = '*'
+                            ct.key_tile_D = '*'
+                            ct.copy_direction = 'r'
+                        
+                            after_a, after_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
+                            record_transition_snapshots(before_a, before_b, after_a, after_b, "Preparing tiles for reset")
 
                     if ct.previous != None: 
                         for neighbor in ct.previous:
-                            _raise_if_cancelled(cancel_callback)
                             adj_tile = retrieve_tile(ct, neighbor)
+                            before_a, before_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
                             if adj_tile != None and adj_tile.copy_direction == None:
                                 adj_tile.copy_direction = 'r?'
                                 t.append(adj_tile)
 
-                ct.key_tile_N = '*'
-                ct.key_tile_E = '*'
-                ct.key_tile_W = '*'
-                ct.key_tile_S = '*'
-                ct.key_tile_U = '*'
-                ct.key_tile_D = '*'
-                ct.copy_direction = 'r'
+                            ct.key_tile_N = '*'
+                            ct.key_tile_E = '*'
+                            ct.key_tile_W = '*'
+                            ct.key_tile_S = '*'
+                            ct.key_tile_U = '*'
+                            ct.key_tile_D = '*'
+                            ct.copy_direction = 'r'
+
+                            after_a, after_b = _tile_snapshot(ct), _tile_snapshot(adj_tile)
+                            record_transition_snapshots(before_a, before_b, after_a, after_b, "Preparing tiles for reset")
 
     return returned_pseudo_seed
 
