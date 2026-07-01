@@ -1279,15 +1279,9 @@ class GeneratorBuilderWindow(QMainWindow):
         self.tile_actors.clear()
 
         for tile in self.step_tiles:
-            if tile == self.origin_tile:
-                color = "black"
-            elif tile in self.step_initial_tiles:
-                color = "lightblue"
-            else:
-                color = "orange"
-
-            actor = self.add_cube(tile, color=color, opacity=1.0)
+            actor = self.add_cube(tile, opacity=1.0)
             self.tile_actors[tile] = actor
+            self.set_tile_color(tile)
 
     def redraw_step_simulation_scene(self):
         self.plotter.clear()
@@ -1297,16 +1291,50 @@ class GeneratorBuilderWindow(QMainWindow):
         self.draw_step_cubes()
         self.plotter.render()
 
-    def redraw_cube_in_scene(self, tile, current=False):
-        tile_coords = self.get_tile_coords(tile)
+    @staticmethod
+    def yellow_check(tile):
+        if tile["status"] == "M" or tile["status"] == "W": return True 
+        if tile["N"] == "M" or tile["N"] == "W": return True
+        if tile["E"] == "M" or tile["E"] == "W": return True
+        if tile["W"] == "M" or tile["W"] == "W": return True
+        if tile["S"] == "M" or tile["S"] == "W": return True
+        if tile["U"] == "M" or tile["U"] == "W": return True
+        if tile["D"] == "M" or tile["D"] == "W": return True
 
+    def set_tile_color(self, tile):
+        tile_coords = self.get_tile_coords(tile)
         tile_actor = self.tile_actors[tile_coords]
+
+        if self.yellow_check(tile):
+            tile_actor.GetProperty().SetColor(0.980, 0.8, 0.082)
+        elif tile["original_seed"]:
+            tile_actor.GetProperty().SetColor(0, 0, 0)
+        elif tile["pseudo_seed"]:
+            tile_actor.GetProperty().SetColor(0.216, 0.255, 0.318)
+        elif tile["status"] == "P":
+            tile_actor.GetProperty().SetColor(0.937, 0.267, 0.267)
+        elif tile["status"] == "F":
+            tile_actor.GetProperty().SetColor(0.133, 0.773, 0.369)
+        elif tile["terminal"]:
+            tile_actor.GetProperty().SetColor(0.498, 0.114, 0.114)
+        else:
+            tile_actor.GetProperty().SetColor(0.58, 0.639, 0.772)
+
+    def redraw_cube_in_scene(self, tile, current=False, placed=False):
+        tile_coords = self.get_tile_coords(tile)
+        tile_actor = self.tile_actors[tile_coords]
+
         if current:
             tile_actor.GetProperty().SetEdgeColor(1.0, 0.0, 1.0)
             tile_actor.GetProperty().SetLineWidth(5)
         else: 
             tile_actor.GetProperty().SetEdgeColor(0, 0, 0)
             tile_actor.GetProperty().SetLineWidth(1)
+        
+        if placed:
+            tile_actor.GetProperty().SetColor(0.678, 0.847, 0.902)
+        else: 
+            self.set_tile_color(tile)
 
         self.plotter.render()
 
@@ -1440,7 +1468,7 @@ class GeneratorBuilderWindow(QMainWindow):
             previously_placed_tile = previous_snapshot["placed_tile"]
             previously_placing_tile = previous_snapshot["placing_tile"]
 
-            self.redraw_cube_in_scene(previously_placed_tile, current=True)
+            self.redraw_cube_in_scene(previously_placed_tile, current=True, placed=True)
             self.redraw_cube_in_scene(previously_placing_tile, current=True)
 
         self.update_step_buttons()
