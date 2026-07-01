@@ -729,6 +729,20 @@ class GeneratorBuilderWindow(QMainWindow):
         self.update_back_button()
         self.update_layer_buttons()
 
+    def restore_layer_button_connections(self):
+        try:
+            self.prev_btn.clicked.disconnect()
+        except TypeError:
+            pass
+
+        try:
+            self.next_btn.clicked.disconnect()
+        except TypeError:
+            pass
+
+        self.prev_btn.clicked.connect(self.previous_layer)
+        self.next_btn.clicked.connect(self.next_layer)
+
     def reset_all(self):
         self.current_layer = 0
         self.generator_tiles.clear()
@@ -761,6 +775,12 @@ class GeneratorBuilderWindow(QMainWindow):
 
         self.prev_btn.show()
         self.next_btn.show()
+        self.restore_layer_button_connections()
+        self.step_snapshots = []
+        self.step_index = 0
+        self.step_tiles = set()
+        self.step_initial_tiles = set()
+
         self.update_layer_buttons()
         self.warning_label.hide()
         self.redraw_scene()
@@ -1351,7 +1371,7 @@ class GeneratorBuilderWindow(QMainWindow):
         )
 
     def display_step_simulation_result(self, snapshots):
-        self.mode = "display_result"
+        self.mode = "step_result"
         self.step_snapshots = snapshots
         self.step_index = 0
         self.step_initial_tiles = set(self.generator_tiles)
